@@ -1,0 +1,67 @@
+I want you to build a full-stack demo of an intelligent in-app chatbot.
+
+**Requirements:**
+- Frontend: React (Vite or Create React App) with a simple chat UI.
+- Backend: Node.js with Express, simulating the chatbot logic.
+- Data storage: Simple JSON file or SQLite for demo purposes (no real database).
+- Run both in Docker using docker-compose.
+
+**Features:**
+1. Chatbot accepts user messages.
+2. Detects intents from the user message (simulate this with simple keyword matching; no real AI needed for the demo).
+3. Supports at least these intents:
+   - `get_balance`: Show the account balance from a fake account.
+   - `get_transactions`: Show last 5 transactions from fake data.
+   - `update_profile`: Trigger a frontend widget to update user profile info.
+   - `help`: Show a help/FAQ answer.
+4. Bot should respond either with:
+   - `"type": "text"` → render as chat bubble.
+   - `"type": "action"` → triggers special frontend action like opening a modal widget.
+5. Example conversation:
+   - User: "What's my balance?" → Bot replies: "Your balance is £1200."
+   - User: "Show my last transactions" → Bot replies with a list.
+   - User: "I want to change my address" → Bot replies with an action to open a profile update widget.
+   - User: "How do I reset my password?" → Bot replies with a help text.
+6. Frontend should display:
+   - Chat messages in a scrollable history.
+   - Special UI for `"action"` responses (for example, open a modal with a form to update profile fields).
+7. Store updated profile info back into the JSON/SQLite file via the backend.
+8. Keep the design clean and minimal but modern — use TailwindCSS if possible.
+9. Show a header with "Finance Assistant Demo" and a user avatar.
+10. All requests from frontend to backend should be via REST JSON API (`/api/chat` for messages, `/api/profile` for profile updates).
+
+**Architecture:**
+- `frontend/` → React app with TailwindCSS, Chat UI, modals for widget actions.
+- `backend/` → Express app with:
+  - `routes/chat.js` → handles incoming chat messages, runs fake intent detection, returns responses.
+  - `routes/profile.js` → handles GET and PATCH for user profile.
+  - `data/db.json` → stores balance, transactions, and profile info.
+
+**Docker:**
+- `Dockerfile` for frontend → build React app and serve with nginx.
+- `Dockerfile` for backend → simple node:18-alpine image running Express.
+- `docker-compose.yml` to run both on different ports and make them talk to each other.
+
+**Extra touches:**
+- In the backend, write a very simple intent detection function using regex/keywords like:
+  - If message contains "balance" → get_balance
+  - If message contains "transactions" or "history" → get_transactions
+  - If message contains "change" and "address" → update_profile
+  - Else → help
+- Prepopulate the JSON data file with:
+  - balance: 120000 (minor units, e.g., £1200.00)
+  - transactions: array of objects `{ date, description, amountMinor }`
+  - profile: `{ name, address, email }`
+- When profile updates, persist the change into `db.json`.
+- In the frontend, when `"type": "action"` and `"actionType": "open_widget"`, open a modal with a form for that widget.
+- Display bot messages and user messages with different bubble colors.
+- Make sure the chat auto-scrolls to the latest message.
+
+Please generate:
+- Full backend code (Express, routes, JSON file access).
+- Full frontend code (React with TailwindCSS chat UI + modal).
+- Dockerfiles for both services.
+- docker-compose.yml for local run.
+
+This is a **demo** for showcasing microservice/chatbot integration concepts, so keep it clean and easy to run.
+
