@@ -1,5 +1,7 @@
 # Finance Assistant Demo
 
+![Demo screenshot](image.png)
+
 Quick start:
 
 1. Docker (recommended):
