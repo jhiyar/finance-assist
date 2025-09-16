@@ -1,15 +1,24 @@
-FROM node:18-alpine
+FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install --omit=dev
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    default-libmysqlclient-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY src ./src
-COPY data ./data
+# Copy requirements and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-ENV PORT=3001
-EXPOSE 3001
+# Copy project files
+COPY . .
 
-CMD ["node", "src/index.js"]
+# Expose port
+EXPOSE 8000
+
+# Start Django development server
+CMD ["python", "-u", "manage.py", "runserver", "0.0.0.0:8000"]
 

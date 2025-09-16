@@ -1,0 +1,63 @@
+[
+  {
+    "title": "sampledoc",
+    "summary": "The document provides information on bridging loans, including types, terms, and administration using the Phoebus solution.",
+    "keywords": [
+      "bridging loans",
+      "short-term loans",
+      "interest payments",
+      "loan origination",
+      "Phoebus solution"
+    ],
+    "faqs": [
+      "What are bridging loans and how are they used?",
+      "What are the different types of bridging loans?",
+      "How are bridging loans administered using the Phoebus solution?",
+      "Can bridging loans be extended beyond 12 months?",
+      "What is the process timeline for a fully serviced loan?"
+    ],
+    "source_path": "/app/sample_documents/sampledoc.pdf",
+    "chunk_count": 22,
+    "processing_timestamp": "2025-09-16 11:41:53.601130"
+  },
+  {
+    "title": "company_policies",
+    "summary": "The document outlines various company policies and procedures related to email usage, internet access, smoking, dress code, workplace safety, confidentiality, attendance, expense reimbursement, vacation, performance evaluation, harassment, technology, meetings, training, and sustainability.",
+    "keywords": [
+      "company policies",
+      "email policy",
+      "internet usage policy",
+      "smoking policy",
+      "dress code policy"
+    ],
+    "faqs": [
+      "What is the company's policy on internet usage during work hours?",
+      "How many vacation days do full-time employees accrue per year?",
+      "What is the procedure for reporting sick leave to supervisors?"
+    ],
+    "source_path": "/app/sample_documents/company_policies.txt",
+    "chunk_count": 1,
+    "processing_timestamp": "2025-09-16 11:41:57.490214"
+  },
+  {
+    "title": "movies",
+    "summary": "A collection of popular movies spanning various genres and directors with brief descriptions and ratings.",
+    "keywords": [
+      "movies",
+      "genres",
+      "directors",
+      "ratings",
+      "descriptions"
+    ],
+    "faqs": [
+      "What is the highest-rated movie in the document?",
+      "Who directed 'Jurassic Park'?",
+      "What is the genre of 'Toy Story'?",
+      "Which movie features criminals in Los Angeles?",
+      "What is the plot of 'The Shawshank Redemption'?"
+    ],
+    "source_path": "/app/sample_documents/movies.txt",
+    "chunk_count": 1,
+    "processing_timestamp": "2025-09-16 11:42:00.152445"
+  }
+]

@@ -1,0 +1,61 @@
+MOVIE DATABASE
+
+Jurassic Park (1993)
+Genre: Science Fiction
+Director: Steven Spielberg
+Rating: 7.7
+Description: A bunch of scientists bring back dinosaurs and mayhem breaks loose
+
+Inception (2010)
+Genre: Science Fiction
+Director: Christopher Nolan
+Rating: 8.2
+Description: Leo DiCaprio gets lost in a dream within a dream within a dream within a ...
+
+Paprika (2006)
+Genre: Science Fiction
+Director: Satoshi Kon
+Rating: 8.6
+Description: A psychologist / detective gets lost in a series of dreams within dreams within dreams and Inception reused the idea
+
+Little Women (2019)
+Genre: Drama
+Director: Greta Gerwig
+Rating: 8.3
+Description: A bunch of normal-sized women are supremely wholesome and some men pine after them
+
+Toy Story (1995)
+Genre: Animated
+Director: John Lasseter
+Rating: 8.3
+Description: Toys come alive and have a blast doing so
+
+Stalker (1979)
+Genre: Thriller
+Director: Andrei Tarkovsky
+Rating: 9.9
+Description: Three men walk into the Zone, three men walk out of the Zone
+
+The Matrix (1999)
+Genre: Science Fiction
+Director: Lana Wachowski
+Rating: 8.7
+Description: A computer programmer discovers a mysterious world and learns about the true nature of reality
+
+Pulp Fiction (1994)
+Genre: Crime
+Director: Quentin Tarantino
+Rating: 8.9
+Description: Various interconnected stories of criminals in Los Angeles
+
+The Shawshank Redemption (1994)
+Genre: Drama
+Director: Frank Darabont
+Rating: 9.3
+Description: Two imprisoned men bond over a number of years, finding solace and redemption through acts of common decency
+
+Fight Club (1999)
+Genre: Drama
+Director: David Fincher
+Rating: 8.8
+Description: An insomniac office worker and a devil-may-care soapmaker form an underground fight club

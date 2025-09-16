@@ -36,6 +36,21 @@ Thumbs.db
 .turbo
 .vite
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.pytest_cache/
+.coverage
+htmlcov/
+
 # Keep demo data tracked
 !backend/data/db.json
 

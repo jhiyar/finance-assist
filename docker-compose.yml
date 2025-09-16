@@ -1,14 +1,48 @@
-version: "3.9"
-
 services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: finance_assist
+      MYSQL_USER: finance_user
+      MYSQL_PASSWORD: finance_password
+      MYSQL_ROOT_PASSWORD: root_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: finance_user
+      PMA_PASSWORD: finance_password
+    depends_on:
+      - db
+
   backend:
     build: ./backend
     ports:
-      - "3001:3001"
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - chroma_data:/app/chroma_db
+    environment:
+      - DJANGO_SETTINGS_MODULE=finance_assist.settings
+    depends_on:
+      - db
+
   frontend:
     build: ./frontend
     ports:
       - "8080:80"
     depends_on:
       - backend
+
+volumes:
+  mysql_data:
+  chroma_data:
 
