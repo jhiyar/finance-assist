@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'chat',
+    'document_processing',
 ]
 
 MIDDLEWARE = [
@@ -155,3 +156,11 @@ OPENAI_MAX_TOKENS = config('OPENAI_MAX_TOKENS', default='4096')
 
 # AI Service Configuration
 AI_SERVICE_PROVIDER = 'openai'  # Using OpenAI only
+
+# Document Processing Configuration
+UNSTRUCTURED_API_KEY = config('UNSTRUCTURED_API_KEY', default='')
+LLAMAPARSE_API_KEY = config('LLAMAPARSE_API_KEY', default='')
+
+# File upload settings
+FILE_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50MB

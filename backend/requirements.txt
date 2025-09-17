@@ -168,3 +168,9 @@ xxhash==3.5.0
 yarl==1.20.1
 zipp==3.23.0
 zstandard==0.24.0
+
+# Document Processing Dependencies
+unstructured[all-docs]==0.15.12
+llama-parse==0.4.4
+sentence-transformers==3.3.1
+python-multipart==0.0.12

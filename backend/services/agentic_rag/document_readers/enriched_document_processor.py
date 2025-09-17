@@ -76,8 +76,17 @@ class EnrichedDocumentProcessor:
         self.llm_service = get_openai_service()
         self.llm = self.llm_service.get_langchain_llm()
         
-        # Initialize embedding model
-        self.embedding_model_instance = SentenceTransformer(embedding_model)
+        # Initialize embedding model with error handling
+        try:
+            self.embedding_model_instance = SentenceTransformer(embedding_model)
+        except Exception as e:
+            if "SSL" in str(e) or "certificate" in str(e).lower():
+                logger.warning(f"SSL certificate issue downloading model {embedding_model}. "
+                             f"Falling back to OpenAI embeddings. Error: {e}")
+                self.embedding_model_instance = None
+            else:
+                logger.error(f"Failed to initialize embedding model {embedding_model}: {e}")
+                self.embedding_model_instance = None
         
         # Initialize text splitter
         self.text_splitter = RecursiveCharacterTextSplitter(
@@ -375,14 +384,25 @@ class EnrichedDocumentProcessor:
             
             # Generate embeddings
             texts = [doc.page_content for doc in documents]
-            embeddings = self.embedding_model_instance.encode(texts)
             
-            # Create FAISS vector store
-            self.vector_store = FAISS.from_embeddings(
-                text_embeddings=list(zip(texts, embeddings)),
-                embedding=self.embedding_model_instance,
-                metadatas=metadatas
-            )
+            if self.embedding_model_instance is not None:
+                # Use sentence-transformers model
+                embeddings = self.embedding_model_instance.encode(texts)
+                self.vector_store = FAISS.from_embeddings(
+                    text_embeddings=list(zip(texts, embeddings)),
+                    embedding=self.embedding_model_instance,
+                    metadatas=metadatas
+                )
+            else:
+                # Fallback to OpenAI embeddings
+                logger.info("Using OpenAI embeddings as fallback")
+                from langchain_openai import OpenAIEmbeddings
+                openai_embeddings = OpenAIEmbeddings()
+                self.vector_store = FAISS.from_documents(
+                    documents=documents,
+                    embedding=openai_embeddings,
+                    metadatas=metadatas
+                )
             
             logger.info(f"Created FAISS vector store with {len(documents)} documents")
             
@@ -440,11 +460,22 @@ class EnrichedDocumentProcessor:
             # Load vector store
             vector_store_path = artifacts_path / "vector_store"
             if vector_store_path.exists():
-                self.vector_store = FAISS.load_local(
-                    str(vector_store_path),
-                    self.embedding_model_instance,
-                    allow_dangerous_deserialization=True
-                )
+                if self.embedding_model_instance is not None:
+                    self.vector_store = FAISS.load_local(
+                        str(vector_store_path),
+                        self.embedding_model_instance,
+                        allow_dangerous_deserialization=True
+                    )
+                else:
+                    # Fallback to OpenAI embeddings for loading
+                    logger.info("Loading vector store with OpenAI embeddings fallback")
+                    from langchain_openai import OpenAIEmbeddings
+                    openai_embeddings = OpenAIEmbeddings()
+                    self.vector_store = FAISS.load_local(
+                        str(vector_store_path),
+                        openai_embeddings,
+                        allow_dangerous_deserialization=True
+                    )
             
             logger.info(f"Loaded artifacts from {artifacts_path}")
             

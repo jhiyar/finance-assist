@@ -98,6 +98,7 @@ class ChatView(APIView):
             print("✓ Enhanced Agentic-RAG service initialized", flush=True)
         except Exception as e:
             print(f"Warning: Could not initialize Enhanced Agentic-RAG service: {e}", flush=True)
+            # Set to None so we can handle gracefully in the chat method
             self.agentic_rag_service = None
     
     def post(self, request):
