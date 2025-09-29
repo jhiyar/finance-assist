@@ -2,8 +2,8 @@ import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ChatInterface from './features/chat/components/ChatInterface'
-import { DocumentProcessingPage } from './features/document-processing'
-import { MessageSquare, FileText, Home } from 'lucide-react'
+import { DocumentProcessingPage, ContextPruningTestPage } from './features/document-processing'
+import { MessageSquare, FileText, Home, Scissors } from 'lucide-react'
 
 // Create a client
 const queryClient = new QueryClient()
@@ -16,6 +16,7 @@ const Navigation = () => {
     { path: '/', label: 'Home', icon: Home },
     { path: '/chat', label: 'Chat', icon: MessageSquare },
     { path: '/document-processing', label: 'Document Processing', icon: FileText },
+    { path: '/context-pruning-test', label: 'Context Pruning Test', icon: Scissors },
   ]
 
   return (
@@ -70,6 +71,11 @@ export const routes = [
     path: '/document-processing',
     component: DocumentProcessingPage,
     exact: true
+  },
+  {
+    path: '/context-pruning-test',
+    component: ContextPruningTestPage,
+    exact: true
   }
 ]
 
@@ -84,6 +90,7 @@ export default function MainRoutes() {
             <Route path="/" element={<ChatInterface />} />
             <Route path="/chat" element={<ChatInterface />} />
             <Route path="/document-processing" element={<DocumentProcessingPage />} />
+            <Route path="/context-pruning-test" element={<ContextPruningTestPage />} />
           </Routes>
         </div>
       </Router>

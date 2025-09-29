@@ -5,3 +5,6 @@ export { default as ResultsDashboard } from './ResultsDashboard';
 export { default as ChunkViewerModal } from './ChunkViewerModal';
 export { default as ResultsViewerModal } from './ResultsViewerModal';
 export { default as DocumentProcessingPage } from './DocumentProcessingPage';
+export { default as ContextPruningPanel } from './ContextPruningPanel';
+export { default as ChunkComparisonModal } from './ChunkComparisonModal';
+export { default as ContextPruningTestPage } from './ContextPruningTestPage';

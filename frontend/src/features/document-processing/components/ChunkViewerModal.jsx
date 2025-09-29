@@ -17,6 +17,7 @@ import {
   BarChart3,
   Settings
 } from 'lucide-react';
+import { cleanChunkContent, formatChunkContent } from '../utils/contentUtils';
 
 const ChunkViewerModal = ({ isOpen, onClose, results, title = "Chunk Analysis" }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -112,6 +113,7 @@ const ChunkViewerModal = ({ isOpen, onClose, results, title = "Chunk Analysis" }
     navigator.clipboard.writeText(text);
     // You could add a toast notification here
   };
+
 
   const exportChunks = (format = 'json') => {
     const data = filteredAndSortedChunks.map(chunk => ({
@@ -354,7 +356,7 @@ const ChunkViewerModal = ({ isOpen, onClose, results, title = "Chunk Analysis" }
                       {/* Chunk Content */}
                       <div className="bg-gray-50 rounded-md p-3">
                         <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono">
-                          {shouldTruncate ? chunk.content.substring(0, 300) + '...' : chunk.content}
+                          {shouldTruncate ? cleanChunkContent(chunk.content).substring(0, 300) + '...' : cleanChunkContent(chunk.content)}
                         </pre>
                         {shouldTruncate && (
                           <button

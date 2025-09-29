@@ -6,6 +6,7 @@ import ProcessingProgress from './ProcessingProgress';
 import ResultsDashboard from './ResultsDashboard';
 import ChunkViewerModal from './ChunkViewerModal';
 import ResultsViewerModal from './ResultsViewerModal';
+import ContextPruningPanel from './ContextPruningPanel';
 import { useDocuments } from '../hooks/useDocuments';
 import { useProcessingJobs, useProcessDocument, useProcessingJob } from '../hooks/useProcessingJob';
 import { 
@@ -27,6 +28,7 @@ const DocumentProcessingPage = () => {
   const [showChunkModal, setShowChunkModal] = useState(false);
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [modalData, setModalData] = useState(null);
+  const [pruningResult, setPruningResult] = useState(null);
 
   const { data: documents, isLoading: documentsLoading } = useDocuments();
   const { data: processingJobs } = useProcessingJobs();
@@ -47,6 +49,7 @@ const DocumentProcessingPage = () => {
     { id: 2, name: 'Select Methods', icon: Settings },
     { id: 3, name: 'Process', icon: Play },
     { id: 4, name: 'View Results', icon: BarChart3 },
+    { id: 5, name: 'Context Pruning', icon: FileText },
   ];
 
   const handleDocumentUpload = (document) => {
@@ -94,6 +97,32 @@ const DocumentProcessingPage = () => {
   const handleViewResults = (processingJob) => {
     setModalData(processingJob);
     setShowResultsModal(true);
+  };
+
+  const getChunksAsDocuments = (processingJob) => {
+    if (!processingJob || !processingJob.chunking_results) {
+      return [];
+    }
+
+    const documents = [];
+    processingJob.chunking_results.forEach(result => {
+      if (result.chunks) {
+        result.chunks.forEach(chunk => {
+          documents.push({
+            content: chunk.content,
+            metadata: {
+              ...chunk.metadata,
+              chunk_id: chunk.id,
+              chunking_method: result.chunking_method?.name,
+              chunk_type: chunk.chunk_type,
+              chunk_index: chunk.chunk_index,
+              token_count: chunk.token_count
+            }
+          });
+        });
+      }
+    });
+    return documents;
   };
 
   const isStepCompleted = (stepId) => {
@@ -242,6 +271,7 @@ const DocumentProcessingPage = () => {
               </div>
             )}
 
+
             {currentStep === 3 && (
               <div className="p-8">
                 <div className="mb-6">
@@ -309,6 +339,41 @@ const DocumentProcessingPage = () => {
                     onViewResults={handleViewResults}
                   />
                 )}
+                <div className="mt-8 flex justify-end">
+                  <button
+                    onClick={() => setCurrentStep(5)}
+                    className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center space-x-2"
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span>Context Pruning Analysis</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 5 && (
+              <div className="p-8">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Context Pruning Analysis</h2>
+                  <p className="text-gray-600">
+                    Apply context pruning to the generated chunks to see how it affects their relevance and quality.
+                    This helps analyze the impact of pruning on your document chunks.
+                  </p>
+                </div>
+                {currentJobData && (
+                  <ContextPruningPanel
+                    documents={getChunksAsDocuments(currentJobData)}
+                    onPruningComplete={setPruningResult}
+                  />
+                )}
+                <div className="mt-8 flex justify-end space-x-4">
+                  <button
+                    onClick={() => setCurrentStep(4)}
+                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    Back to Results
+                  </button>
+                </div>
               </div>
             )}
           </div>

@@ -13,10 +13,10 @@ class SemanticChunker(BaseChunker):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.chunk_size = kwargs.get('chunk_size', 5000)  # ~1000 words
+        self.chunk_size = kwargs.get('chunk_size', 15000)  # ~3000 words - increased for better context
         self.semantic_threshold = kwargs.get('semantic_threshold', 0.7)
-        self.min_chunk_size = kwargs.get('min_chunk_size', 500)  # ~100 words
-        self.max_chunk_size = kwargs.get('max_chunk_size', 10000)  # ~2000 words
+        self.min_chunk_size = kwargs.get('min_chunk_size', 1500)  # ~300 words - increased proportionally
+        self.max_chunk_size = kwargs.get('max_chunk_size', 25000)  # ~5000 words - increased proportionally
         
         # Initialize embedding model
         self.embedding_model = self._initialize_embedding_model()

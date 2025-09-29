@@ -23,6 +23,7 @@ from .chunkers.hierarchical_chunker import HierarchicalChunker
 from .chunkers.semantic_chunker import SemanticChunker
 from .chunkers.financial_chunker import FinancialChunker
 from .evaluation.evaluator import ChunkEvaluator
+from services.context_pruning_service import get_context_pruning_service
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,82 @@ class DocumentUploadView(APIView):
                 status=status.HTTP_201_CREATED
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ContextPruningView(APIView):
+    """API view for context pruning operations."""
+    
+    def post(self, request):
+        """Apply context pruning to documents."""
+        try:
+            # Get parameters from request
+            documents_data = request.data.get('documents', [])
+            query = request.data.get('query', '')
+            method = request.data.get('method', 'hybrid')
+            config = request.data.get('config', {})
+            
+            if not documents_data:
+                return Response(
+                    {'error': 'No documents provided'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Convert documents data to Document objects
+            from langchain_core.documents import Document
+            documents = []
+            for doc_data in documents_data:
+                doc = Document(
+                    page_content=doc_data.get('content', ''),
+                    metadata=doc_data.get('metadata', {})
+                )
+                documents.append(doc)
+            
+            # Initialize context pruning service
+            pruning_service = get_context_pruning_service(**config)
+            
+            # Apply pruning
+            result = pruning_service.prune_context(
+                documents=documents,
+                query=query,
+                method=method,
+                **config
+            )
+            
+            # Convert result to response format
+            response_data = {
+                'pruned_documents': [
+                    {
+                        'content': doc.page_content,
+                        'metadata': doc.metadata
+                    }
+                    for doc in result.pruned_documents
+                ],
+                'original_documents': [
+                    {
+                        'content': doc.page_content,
+                        'metadata': doc.metadata
+                    }
+                    for doc in result.original_documents
+                ],
+                'stats': {
+                    'original_count': result.original_count,
+                    'pruned_count': result.pruned_count,
+                    'compression_ratio': result.compression_ratio,
+                    'processing_time': result.processing_time,
+                    'pruning_method': result.pruning_method,
+                    'efficiency': f"{(1 - result.compression_ratio) * 100:.1f}% reduction"
+                },
+                'metadata': result.metadata
+            }
+            
+            return Response(response_data, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Context pruning failed: {e}")
+            return Response(
+                {'error': f'Context pruning failed: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class DocumentListView(generics.ListAPIView):
@@ -401,10 +478,10 @@ class ChunkingMethodConfigView(APIView):
             })
         elif chunking_method.method_type == 'semantic':
             config.update({
-                'chunk_size': {'type': 'integer', 'min': 100, 'max': 4000, 'default': 1000},
+                'chunk_size': {'type': 'integer', 'min': 1000, 'max': 30000, 'default': 15000},
                 'semantic_threshold': {'type': 'float', 'min': 0.0, 'max': 1.0, 'default': 0.7},
-                'min_chunk_size': {'type': 'integer', 'min': 50, 'max': 1000, 'default': 100},
-                'max_chunk_size': {'type': 'integer', 'min': 500, 'max': 4000, 'default': 2000}
+                'min_chunk_size': {'type': 'integer', 'min': 500, 'max': 5000, 'default': 1500},
+                'max_chunk_size': {'type': 'integer', 'min': 2000, 'max': 50000, 'default': 25000}
             })
         elif chunking_method.method_type == 'financial':
             config.update({

@@ -4,7 +4,7 @@ from .views import (
     ChunkingMethodListView, ChunkingMethodDetailView,
     ProcessingJobCreateView, ProcessingJobDetailView, ProcessingJobListView,
     ChunkingResultListView, ChunkingResultDetailView,
-    ComparisonView, ChunkingMethodConfigView
+    ComparisonView, ChunkingMethodConfigView, ContextPruningView
 )
 
 app_name = 'document_processing'
@@ -31,4 +31,7 @@ urlpatterns = [
     
     # Comparison endpoint
     path('documents/<uuid:doc_id>/compare/', ComparisonView.as_view(), name='compare_methods'),
+    
+    # Context pruning endpoint
+    path('context-pruning/', ContextPruningView.as_view(), name='context_pruning'),
 ]
