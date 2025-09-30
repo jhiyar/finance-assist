@@ -45,6 +45,126 @@ class DocumentUploadView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class DocumentParseView(APIView):
+    """API view for parsing documents and extracting text content."""
+    
+    parser_classes = [MultiPartParser, FormParser]
+    
+    def post(self, request):
+        """Parse a document and return extracted text content."""
+        try:
+            if 'file' not in request.FILES:
+                return Response(
+                    {'error': 'No file provided'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            file = request.FILES['file']
+            
+            # Validate file type
+            if file.content_type != 'application/pdf':
+                return Response(
+                    {'error': 'Only PDF files are supported'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Save file temporarily
+            import tempfile
+            import os
+            
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
+                for chunk in file.chunks():
+                    temp_file.write(chunk)
+                temp_file_path = temp_file.name
+            
+            try:
+                # Parse document using available parsers
+                parsed_document = self._parse_document(temp_file_path)
+                
+                # Extract text content
+                text_content = self._extract_text_content(parsed_document)
+                
+                return Response({
+                    'content': text_content,
+                    'metadata': {
+                        'filename': file.name,
+                        'file_size': file.size,
+                        'content_type': file.content_type,
+                        'total_elements': len(parsed_document.elements),
+                        'total_length': parsed_document.total_length
+                    }
+                })
+                
+            finally:
+                # Clean up temporary file
+                if os.path.exists(temp_file_path):
+                    os.unlink(temp_file_path)
+                    
+        except Exception as e:
+            logger.error(f"Error parsing document: {e}")
+            return Response(
+                {'error': f'Failed to parse document: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def _parse_document(self, file_path):
+        """Parse document using appropriate parser."""
+        # Try Unstructured.io first
+        try:
+            parser = UnstructuredParser()
+            if parser.validate_file(file_path):
+                return parser.parse(file_path)
+        except Exception as e:
+            logger.warning(f"Unstructured.io parsing failed: {e}")
+        
+        # Fallback to LlamaParse
+        try:
+            parser = LlamaParseParser()
+            if parser.validate_file(file_path):
+                return parser.parse(file_path)
+        except Exception as e:
+            logger.warning(f"LlamaParse parsing failed: {e}")
+        
+        # Fallback to basic text parsing
+        return self._basic_text_parse(file_path)
+    
+    def _basic_text_parse(self, file_path):
+        """Basic text parsing fallback."""
+        try:
+            import pypdf
+            with open(file_path, 'rb') as file:
+                pdf_reader = pypdf.PdfReader(file)
+                text_content = ""
+                for page in pdf_reader.pages:
+                    text_content += page.extract_text() + "\n"
+                
+                from .parsers.base_parser import ParsedDocument, ParsedElement
+                element = ParsedElement(
+                    content=text_content,
+                    element_type='text',
+                    metadata={'source': 'basic_pdf_parser'},
+                    start_position=0,
+                    end_position=len(text_content)
+                )
+                
+                return ParsedDocument(
+                    elements=[element],
+                    metadata={'parser': 'basic_pdf'},
+                    total_length=len(text_content)
+                )
+        except Exception as e:
+            logger.error(f"Basic text parsing failed: {e}")
+            raise
+    
+    def _extract_text_content(self, parsed_document):
+        """Extract plain text content from parsed document."""
+        text_parts = []
+        for element in parsed_document.elements:
+            if element.content.strip():
+                text_parts.append(element.content.strip())
+        return '\n\n'.join(text_parts)
+
+
 class ContextPruningView(APIView):
     """API view for context pruning operations."""
     

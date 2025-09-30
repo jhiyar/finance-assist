@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { 
   Scissors, 
@@ -11,7 +11,10 @@ import {
   Info,
   Eye,
   Copy,
-  Download
+  Download,
+  Upload,
+  File,
+  X
 } from 'lucide-react';
 import { formatChunkContent } from '../utils/contentUtils';
 
@@ -20,6 +23,11 @@ const ContextPruningTestPage = () => {
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
   const [selectedMethod, setSelectedMethod] = useState(null);
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [fileContent, setFileContent] = useState('');
+  const [isUploadMode, setIsUploadMode] = useState(false);
+  const [isProcessingFile, setIsProcessingFile] = useState(false);
+  const fileInputRef = useRef(null);
   
   const { register, handleSubmit, watch, setValue } = useForm({
     defaultValues: {
@@ -35,9 +43,95 @@ const ContextPruningTestPage = () => {
 
   const selectedMethods = watch('methods');
 
+  // File processing functions
+  const processFile = async (file) => {
+    if (!file) return;
+    
+    setIsProcessingFile(true);
+    setError(null);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/document-processing/parse-document/', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to process file');
+      }
+      
+      const result = await response.json();
+      const extractedText = result.content || result.text || '';
+      
+      setFileContent(extractedText);
+      setValue('input_text', extractedText);
+      setUploadedFile(file);
+      
+    } catch (err) {
+      setError(`Failed to process file: ${err.message}`);
+      setUploadedFile(null);
+      setFileContent('');
+    } finally {
+      setIsProcessingFile(false);
+    }
+  };
+
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file && file.type === 'application/pdf') {
+      processFile(file);
+    } else {
+      setError('Please upload a PDF file');
+    }
+  };
+
+  const handleDrop = (event) => {
+    event.preventDefault();
+    const file = event.dataTransfer.files[0];
+    if (file && file.type === 'application/pdf') {
+      processFile(file);
+    } else {
+      setError('Please upload a PDF file');
+    }
+  };
+
+  const handleDragOver = (event) => {
+    event.preventDefault();
+  };
+
+  const removeFile = () => {
+    setUploadedFile(null);
+    setFileContent('');
+    setValue('input_text', '');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const selectTextMode = () => {
+    if (isUploadMode) {
+      setIsUploadMode(false);
+      // Switching to text mode - clear file
+      removeFile();
+    }
+  };
+
+  const selectUploadMode = () => {
+    if (!isUploadMode) {
+      setIsUploadMode(true);
+      // Switching to upload mode - clear text input
+      setValue('input_text', '');
+    }
+  };
+
   const onSubmit = async (data) => {
-    if (!data.input_text.trim()) {
-      setError('Please enter some text to test');
+    const inputText = isUploadMode ? fileContent : data.input_text;
+    
+    if (!inputText.trim()) {
+      setError(isUploadMode ? 'Please upload a PDF file' : 'Please enter some text to test');
       return;
     }
 
@@ -53,11 +147,11 @@ const ContextPruningTestPage = () => {
     try {
       // Create documents from the input text
       const documents = [{
-        content: data.input_text,
+        content: inputText,
         metadata: {
-          source: 'user_input',
+          source: isUploadMode ? uploadedFile?.name || 'uploaded_file' : 'user_input',
           chunking_method: 'manual',
-          chunk_type: 'text'
+          chunk_type: isUploadMode ? 'pdf' : 'text'
         }
       }];
 
@@ -119,10 +213,11 @@ const ContextPruningTestPage = () => {
       }
 
       setResults({
-        input_text: data.input_text,
+        input_text: inputText,
         query: data.query,
         method_results: methodResults,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        source: isUploadMode ? uploadedFile?.name || 'uploaded_file' : 'text_input'
       });
 
     } catch (err) {
@@ -197,18 +292,117 @@ const ContextPruningTestPage = () => {
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              {/* Input Text */}
-              <div>
-                <label htmlFor="input_text" className="block text-sm font-medium text-gray-700 mb-2">
-                  Input Text
-                </label>
-                <textarea
-                  {...register('input_text', { required: 'Input text is required' })}
-                  rows={8}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter the text you want to test context pruning on..."
-                />
+              {/* Input Mode Toggle */}
+              <div className="flex items-center space-x-4 mb-4">
+                <span className="text-sm font-medium text-gray-700">Input Method:</span>
+                <div className="flex bg-gray-100 rounded-lg p-1">
+                  <button
+                    type="button"
+                    onClick={selectTextMode}
+                    className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                      !isUploadMode 
+                        ? 'bg-white text-blue-600 shadow-sm' 
+                        : 'text-gray-600 hover:text-gray-800'
+                    }`}
+                  >
+                    <FileText className="h-4 w-4 inline mr-1" />
+                    Text Input
+                  </button>
+                  <button
+                    type="button"
+                    onClick={selectUploadMode}
+                    className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                      isUploadMode 
+                        ? 'bg-white text-blue-600 shadow-sm' 
+                        : 'text-gray-600 hover:text-gray-800'
+                    }`}
+                  >
+                    <Upload className="h-4 w-4 inline mr-1" />
+                    PDF Upload
+                  </button>
+                </div>
               </div>
+
+              {/* Input Text or File Upload */}
+              {!isUploadMode ? (
+                <div>
+                  <label htmlFor="input_text" className="block text-sm font-medium text-gray-700 mb-2">
+                    Input Text
+                  </label>
+                  <textarea
+                    {...register('input_text', { required: !isUploadMode ? 'Input text is required' : false })}
+                    rows={8}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter the text you want to test context pruning on..."
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Upload PDF File
+                  </label>
+                  
+                  {!uploadedFile ? (
+                    <div
+                      onDrop={handleDrop}
+                      onDragOver={handleDragOver}
+                      className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".pdf"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+                      {isProcessingFile ? (
+                        <div className="flex flex-col items-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
+                          <p className="text-sm text-gray-600">Processing PDF...</p>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center">
+                          <Upload className="h-12 w-12 text-gray-400 mb-2" />
+                          <p className="text-sm text-gray-600 mb-1">
+                            Click to upload or drag and drop a PDF file
+                          </p>
+                          <p className="text-xs text-gray-500">PDF files only</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <File className="h-8 w-8 text-red-500" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{uploadedFile.name}</p>
+                            <p className="text-xs text-gray-500">
+                              {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={removeFile}
+                          className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                      {fileContent && (
+                        <div className="mt-3 p-3 bg-white rounded border">
+                          <p className="text-xs text-gray-500 mb-1">Extracted text preview:</p>
+                          <p className="text-sm text-gray-700 line-clamp-3">
+                            {fileContent.substring(0, 200)}...
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Query */}
               <div>
@@ -218,6 +412,7 @@ const ContextPruningTestPage = () => {
                 <input
                   {...register('query', { required: 'Query is required' })}
                   type="text"
+                  value={'financial'}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter a query to determine relevance (e.g., 'financial data', 'company policies')"
                 />
@@ -292,13 +487,18 @@ const ContextPruningTestPage = () => {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={isProcessing || selectedMethods.length === 0}
+                disabled={isProcessing || isProcessingFile || selectedMethods.length === 0}
                 className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
               >
                 {isProcessing ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                     <span>Testing Methods...</span>
+                  </>
+                ) : isProcessingFile ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Processing File...</span>
                   </>
                 ) : (
                   <>
@@ -341,6 +541,7 @@ const ContextPruningTestPage = () => {
                   <h3 className="font-medium text-gray-900 mb-2">Test Summary</h3>
                   <div className="text-sm text-gray-600 space-y-1">
                     <p><strong>Query:</strong> {results.query}</p>
+                    <p><strong>Source:</strong> {results.source}</p>
                     <p><strong>Input Length:</strong> {results.input_text.length} characters</p>
                     <p><strong>Methods Tested:</strong> {Object.keys(results.method_results).join(', ')}</p>
                     <p><strong>Timestamp:</strong> {new Date(results.timestamp).toLocaleString()}</p>
@@ -418,17 +619,29 @@ const ContextPruningTestPage = () => {
                               <div className="flex items-center justify-between mb-2">
                                 <h5 className="font-medium text-gray-900">Pruned Content</h5>
                                 <button
-                                  onClick={() => copyToClipboard(result.pruned_documents[0].content)}
+                                  onClick={() => copyToClipboard(result.pruned_documents.map(d => d.content).join('\n\n'))}
                                   className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                                  title="Copy content"
+                                  title="Copy all pruned content"
                                 >
                                   <Copy className="h-4 w-4" />
                                 </button>
                               </div>
-                              <div className="bg-gray-50 rounded-md p-3 max-h-40 overflow-y-auto">
-                                <pre className="whitespace-pre-wrap text-sm text-gray-800">
-                                  {formatChunkContent(result.pruned_documents[0].content, 1000)}
-                                </pre>
+                              <div className="bg-gray-50 rounded-md p-3 max-h-96 overflow-y-auto">
+                                <div className="space-y-4">
+                                  {result.pruned_documents.map((doc, idx) => (
+                                    <div key={idx} className="border border-gray-200 rounded p-2 bg-white">
+                                      <div className="flex items-center justify-between mb-2">
+                                        <span className="text-xs text-gray-500">Chunk {idx + 1}</span>
+                                        {doc.metadata && doc.metadata.page_number && (
+                                          <span className="text-xs text-gray-400">Page {doc.metadata.page_number}</span>
+                                        )}
+                                      </div>
+                                      <pre className="whitespace-pre-wrap text-sm text-gray-800">
+                                        {doc.content}
+                                      </pre>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             </div>
                           )}

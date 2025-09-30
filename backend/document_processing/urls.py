@@ -4,7 +4,8 @@ from .views import (
     ChunkingMethodListView, ChunkingMethodDetailView,
     ProcessingJobCreateView, ProcessingJobDetailView, ProcessingJobListView,
     ChunkingResultListView, ChunkingResultDetailView,
-    ComparisonView, ChunkingMethodConfigView, ContextPruningView
+    ComparisonView, ChunkingMethodConfigView, ContextPruningView,
+    DocumentParseView
 )
 
 app_name = 'document_processing'
@@ -12,6 +13,7 @@ app_name = 'document_processing'
 urlpatterns = [
     # Document endpoints
     path('documents/upload/', DocumentUploadView.as_view(), name='document_upload'),
+    path('parse-document/', DocumentParseView.as_view(), name='parse_document'),
     path('documents/', DocumentListView.as_view(), name='document_list'),
     path('documents/<uuid:pk>/', DocumentDetailView.as_view(), name='document_detail'),
     
