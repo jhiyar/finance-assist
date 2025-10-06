@@ -63,6 +63,7 @@ langgraph==0.6.7
 langgraph-checkpoint==2.1.1
 langgraph-prebuilt==0.6.4
 langgraph-sdk==0.2.6
+deepagents==0.1.0
 langsmith==0.4.21
 lark==1.2.2
 lomond==0.3.3
@@ -174,3 +175,4 @@ unstructured[all-docs]==0.15.12
 llama-parse==0.4.4
 sentence-transformers==3.3.1
 python-multipart==0.0.12
+agentic-doc==0.3.3

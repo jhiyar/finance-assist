@@ -8,12 +8,18 @@ from .serializers import (
     TransactionSerializer, 
     BalanceSerializer,
     ChatMessageSerializer,
-    ChatResponseSerializer
+    ChatResponseSerializer,
+    DeepAgentChatMessageSerializer,
+    DeepAgentChatResponseSerializer
 )
 from .utils import detect_intent, format_minor_units_to_currency
 from services.retriever_service import get_openai_retriever_service
 from services.document_loader import get_document_loader
 from services.agentic_rag.agentic_rag_service import get_agentic_rag_service, initialize_agentic_rag_service
+from services.deep_agents.deep_agent_service import get_deep_agent_service, initialize_deep_agent_service
+from services.agentic_rag.document_readers.agentic_document_reader import AgenticDocumentReader
+from services.agentic_rag.document_readers.pdf_reader import PDFReader
+from services.agentic_rag.document_readers.text_reader import TextReader
 from langchain_core.documents import Document
 import os
 import sys
@@ -400,6 +406,257 @@ class AgenticRAGTestView(APIView):
             
             # Process the query
             result = self.agentic_rag_service.process_query(query)
+            
+            return Response({
+                'status': 'success',
+                'query': query,
+                'result': result
+            })
+            
+        except Exception as e:
+            return Response({
+                'error': str(e),
+                'status': 'error'
+            })
+
+
+class DeepAgentChatView(APIView):
+    """API view for handling chat messages with Deep Agents using LangGraph and ChromaDB."""
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        print("✓ DeepAgentChatView initialized", flush=True)
+        self.deep_agent_service = None
+        self._initialize_deep_agent_service()
+    
+    def _initialize_deep_agent_service(self):
+        """Initialize the Deep Agent service."""
+        try:
+            print("Initializing Deep Agent service...", flush=True)
+            self.deep_agent_service = initialize_deep_agent_service(
+                documents_directory="sample_documents",
+                collection_name="deep_agent_documents",
+                enable_evaluation=False,
+                force_reprocess=False
+            )
+            print("✓ Deep Agent service initialized", flush=True)
+        except Exception as e:
+            print(f"Warning: Could not initialize Deep Agent service: {e}", flush=True)
+            # Set to None so we can handle gracefully in the chat method
+            self.deep_agent_service = None
+    
+    def post(self, request):
+        """Handle chat messages with Deep Agent processing."""
+        serializer = DeepAgentChatMessageSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {'error': 'Invalid message'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        message = serializer.validated_data['message']
+        session_id = serializer.validated_data.get('session_id')
+        agent_type = serializer.validated_data.get('agent_type', 'deep_agent')
+        
+        print(f"Processing message with Deep Agent: {message[:50]}...", flush=True)
+        print(f"Session ID: {session_id}", flush=True)
+        print(f"Agent type: {agent_type}", flush=True)
+        
+        # Check if this is a simple intent-based query that doesn't need document retrieval
+        intent = detect_intent(message)
+        print(f"Intent detected: {intent}", flush=True)
+        
+        # Handle specific banking intents directly
+        if intent in ['get_balance', 'get_transactions', 'update_profile']:
+            return self._handle_banking_intent(intent)
+        
+        # Use Deep Agent for all other queries
+        try:
+            if not self.deep_agent_service:
+                return Response({
+                    'error': 'Deep Agent service not available',
+                    'message': 'I apologize, but the Deep Agent system is not ready. Please try again later.'
+                }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            
+            # Process query with Deep Agent
+            result = self.deep_agent_service.process_query(
+                query=message,
+                session_id=session_id
+            )
+            
+            if result and result.get('answer'):
+                # Format response for API
+                response_data = {
+                    'type': 'text',
+                    'text': result['answer'],
+                    'session_id': result.get('session_id', session_id or 'unknown'),
+                    'confidence_score': result.get('confidence', 0.0),
+                    'sources_used': result.get('sources_used', []),
+                    'processing_time': result.get('processing_time', 0.0),
+                    'agent_type': agent_type,
+                    'reasoning': result.get('reasoning', {}),
+                    'citations': result.get('citations', []),
+                    'source': 'deep_agent'
+                }
+                
+                response_serializer = DeepAgentChatResponseSerializer(data=response_data)
+                response_serializer.is_valid(raise_exception=True)
+                
+                print(f"Deep Agent response generated with confidence: {result.get('confidence', 0.0)}", flush=True)
+                return Response(response_serializer.validated_data)
+            else:
+                return Response({
+                    'error': 'Failed to generate response',
+                    'message': 'I apologize, but I couldn\'t generate a proper response to your query. Please try rephrasing your question.'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+        except Exception as e:
+            print(f"Deep Agent processing failed: {e}", flush=True)
+            return Response({
+                'error': 'Processing failed',
+                'message': f'I apologize, but I encountered an error while processing your query: "{message}". Please try again.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def _handle_banking_intent(self, intent: str) -> Response:
+        """Handle specific banking intents."""
+        if intent == 'get_balance':
+            balance = get_object_or_404(Balance, id=1)
+            human_balance = format_minor_units_to_currency(balance.amount_minor)
+            response_data = {
+                'type': 'text',
+                'text': f'Your balance is {human_balance}.',
+                'session_id': 'banking_intent',
+                'confidence_score': 1.0,
+                'sources_used': ['database'],
+                'processing_time': 0.0,
+                'agent_type': 'banking_intent',
+                'reasoning': {'intent': 'get_balance'},
+                'citations': [],
+                'source': 'banking_intent'
+            }
+        
+        elif intent == 'get_transactions':
+            transactions = Transaction.objects.all()[:10]
+            if transactions:
+                lines = []
+                total_amount = 0
+                for t in transactions:
+                    formatted_amount = format_minor_units_to_currency(t.amount_minor)
+                    total_amount += t.amount_minor
+                    lines.append(f"• {t.date} — {t.description}: {formatted_amount}")
+                
+                total_formatted = format_minor_units_to_currency(total_amount)
+                response_text = f'Here are your last {len(lines)} transactions:\n\n' + '\n'.join(lines)
+                response_text += f'\n\nTotal amount: {total_formatted}'
+                
+                response_data = {
+                    'type': 'text',
+                    'text': response_text,
+                    'session_id': 'banking_intent',
+                    'confidence_score': 1.0,
+                    'sources_used': ['database'],
+                    'processing_time': 0.0,
+                    'agent_type': 'banking_intent',
+                    'reasoning': {'intent': 'get_transactions'},
+                    'citations': [],
+                    'source': 'banking_intent'
+                }
+            else:
+                response_data = {
+                    'type': 'text',
+                    'text': 'No transactions found.',
+                    'session_id': 'banking_intent',
+                    'confidence_score': 1.0,
+                    'sources_used': ['database'],
+                    'processing_time': 0.0,
+                    'agent_type': 'banking_intent',
+                    'reasoning': {'intent': 'get_transactions'},
+                    'citations': [],
+                    'source': 'banking_intent'
+                }
+        
+        elif intent == 'update_profile':
+            response_data = {
+                'type': 'action',
+                'text': 'Profile update widget opened',
+                'session_id': 'banking_intent',
+                'confidence_score': 1.0,
+                'sources_used': ['database'],
+                'processing_time': 0.0,
+                'agent_type': 'banking_intent',
+                'reasoning': {'intent': 'update_profile'},
+                'citations': [],
+                'source': 'banking_intent',
+                'actionType': 'open_widget',
+                'widget': 'profile_update',
+                'title': 'Update your profile information',
+                'fields': ['name', 'address', 'email']
+            }
+        
+        response_serializer = DeepAgentChatResponseSerializer(data=response_data)
+        response_serializer.is_valid(raise_exception=True)
+        return Response(response_serializer.validated_data)
+
+
+class DeepAgentTestView(APIView):
+    """API view for testing Deep Agent functionality."""
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.deep_agent_service = None
+        self._initialize_service()
+    
+    def _initialize_service(self):
+        """Initialize the Deep Agent service."""
+        print("Initializing Deep Agent service for testing", flush=True)
+        try:
+            self.deep_agent_service = get_deep_agent_service()
+            if not self.deep_agent_service.documents_processed:
+                print("Documents not processed, initializing documents", flush=True)
+                result = self.deep_agent_service.initialize_documents()
+                print(f"Deep Agent initialization result: {result}", flush=True)
+        except Exception as e:
+            print(f"Failed to initialize Deep Agent service: {e}", flush=True)
+    
+    def get(self, request):
+        """Get service information and available documents."""
+        print("Getting Deep Agent service information", flush=True)
+        
+        if not self.deep_agent_service:
+            print("Deep Agent service not available", flush=True)
+            return Response({
+                'error': 'Deep Agent service not available',
+                'status': 'not_initialized'
+            })
+        
+        service_info = self.deep_agent_service.get_service_info()
+        available_documents = self.deep_agent_service.get_available_documents()
+        
+        return Response({
+            'status': 'success',
+            'service_info': service_info,
+            'available_documents': available_documents,
+            'document_count': len(available_documents)
+        })
+    
+    def post(self, request):
+        """Test Deep Agent with a query."""
+        try:
+            query = request.data.get('query', '')
+            if not query:
+                return Response({
+                    'error': 'Query is required',
+                    'status': 'error'
+                })
+            
+            if not self.deep_agent_service:
+                return Response({
+                    'error': 'Deep Agent service not available',
+                    'status': 'not_initialized'
+                })
+            
+            # Process the query
+            result = self.deep_agent_service.process_query(query)
             
             return Response({
                 'status': 'success',

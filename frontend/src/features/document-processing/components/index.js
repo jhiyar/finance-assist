@@ -8,3 +8,4 @@ export { default as DocumentProcessingPage } from './DocumentProcessingPage';
 export { default as ContextPruningPanel } from './ContextPruningPanel';
 export { default as ChunkComparisonModal } from './ChunkComparisonModal';
 export { default as ContextPruningTestPage } from './ContextPruningTestPage';
+export { default as DocumentReaderComparisonPage } from './DocumentReaderComparisonPage';

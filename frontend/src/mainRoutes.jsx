@@ -2,8 +2,8 @@ import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ChatInterface from './features/chat/components/ChatInterface'
-import { DocumentProcessingPage, ContextPruningTestPage } from './features/document-processing'
-import { MessageSquare, FileText, Home, Scissors } from 'lucide-react'
+import { DocumentProcessingPage, ContextPruningTestPage, DocumentReaderComparisonPage } from './features/document-processing'
+import { MessageSquare, FileText, Home, Scissors, GitCompare } from 'lucide-react'
 
 // Create a client
 const queryClient = new QueryClient()
@@ -17,6 +17,7 @@ const Navigation = () => {
     { path: '/chat', label: 'Chat', icon: MessageSquare },
     { path: '/document-processing', label: 'Document Processing', icon: FileText },
     { path: '/context-pruning-test', label: 'Context Pruning Test', icon: Scissors },
+    { path: '/document-reader-comparison', label: 'Reader Comparison', icon: GitCompare },
   ]
 
   return (
@@ -76,6 +77,11 @@ export const routes = [
     path: '/context-pruning-test',
     component: ContextPruningTestPage,
     exact: true
+  },
+  {
+    path: '/document-reader-comparison',
+    component: DocumentReaderComparisonPage,
+    exact: true
   }
 ]
 
@@ -91,6 +97,7 @@ export default function MainRoutes() {
             <Route path="/chat" element={<ChatInterface />} />
             <Route path="/document-processing" element={<DocumentProcessingPage />} />
             <Route path="/context-pruning-test" element={<ContextPruningTestPage />} />
+            <Route path="/document-reader-comparison" element={<DocumentReaderComparisonPage />} />
           </Routes>
         </div>
       </Router>

@@ -67,7 +67,6 @@ class AgenticRAGService:
         # try:
         # Get the full path to documents directory
         base_dir = Path(__file__).parent.parent.parent  # Go up to backend/
-        print(f"Base directory: {base_dir}", flush=True)
         docs_path = base_dir / self.documents_directory
         
         if not docs_path.exists():
