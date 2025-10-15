@@ -24,6 +24,7 @@ from .chunkers.semantic_chunker import SemanticChunker
 from .chunkers.financial_chunker import FinancialChunker
 from .evaluation.evaluator import ChunkEvaluator
 from services.context_pruning_service import get_context_pruning_service
+from services.chromadb_service import get_chromadb_service
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +35,43 @@ class DocumentUploadView(APIView):
     parser_classes = [MultiPartParser, FormParser]
     
     def post(self, request):
-        """Upload a new document."""
+        """Upload a new document and process with ChromaDB."""
         serializer = DocumentUploadSerializer(data=request.data)
         if serializer.is_valid():
             document = serializer.save()
+            
+            # Process document with ChromaDB
+            try:
+                chromadb_service = get_chromadb_service()
+                result = chromadb_service.add_document(
+                    file_path=document.file.path,
+                    document_id=document.id,
+                    document_name=document.name,
+                    metadata={
+                        "file_type": document.file_type,
+                        "upload_date": document.upload_date.isoformat()
+                    }
+                )
+                
+                # Update document metadata with chunk info
+                document.metadata.update({
+                    "chunks_count": result["chunks_count"],
+                    "chromadb_processed": True
+                })
+                document.processed = True
+                document.save()
+                
+                logger.info(f"Document {document.name} processed with {result['chunks_count']} chunks")
+                
+            except Exception as e:
+                logger.error(f"Error processing document with ChromaDB: {e}")
+                # Don't fail the upload, just log the error
+                document.metadata.update({
+                    "chromadb_error": str(e),
+                    "chromadb_processed": False
+                })
+                document.save()
+            
             return Response(
                 DocumentSerializer(document).data,
                 status=status.HTTP_201_CREATED
@@ -253,6 +287,47 @@ class DocumentDetailView(generics.RetrieveDestroyAPIView):
     
     queryset = Document.objects.all()
     serializer_class = DocumentSerializer
+    
+    def destroy(self, request, *args, **kwargs):
+        """Delete document and its chunks from ChromaDB."""
+        document = self.get_object()
+        
+        # Delete from ChromaDB
+        try:
+            chromadb_service = get_chromadb_service()
+            chromadb_service.delete_document(document.id)
+            logger.info(f"Deleted document {document.id} from ChromaDB")
+        except Exception as e:
+            logger.error(f"Error deleting from ChromaDB: {e}")
+        
+        # Delete document file and database entry
+        return super().destroy(request, *args, **kwargs)
+
+
+class DocumentChunksView(APIView):
+    """API view for retrieving document chunks from ChromaDB."""
+    
+    def get(self, request, doc_id):
+        """Get all chunks for a document."""
+        document = get_object_or_404(Document, id=doc_id)
+        
+        try:
+            chromadb_service = get_chromadb_service()
+            chunks = chromadb_service.get_document_chunks(str(document.id))
+            
+            return Response({
+                "document_id": str(document.id),
+                "document_name": document.name,
+                "total_chunks": len(chunks),
+                "chunks": chunks
+            })
+            
+        except Exception as e:
+            logger.error(f"Error retrieving chunks: {e}")
+            return Response(
+                {"error": f"Failed to retrieve chunks: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class ChunkingMethodListView(generics.ListAPIView):

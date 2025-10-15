@@ -9,18 +9,19 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.3.1",
-    "react-markdown": "^9.1.0",
-    "remark-gfm": "^4.0.0",
-    "react-hook-form": "^7.53.2",
     "@tanstack/react-query": "^5.59.16",
-    "react-dropzone": "^14.2.3",
-    "chart.js": "^4.4.6",
-    "react-chartjs-2": "^5.2.0",
     "axios": "^1.7.7",
+    "chart.js": "^4.4.6",
+    "lucide-react": "^0.468.0",
+    "react": "^18.2.0",
+    "react-chartjs-2": "^5.2.0",
+    "react-dom": "^18.3.1",
+    "react-dropzone": "^14.2.3",
+    "react-hook-form": "^7.53.2",
+    "react-icons": "^5.5.0",
+    "react-markdown": "^9.1.0",
     "react-router-dom": "^6.28.0",
-    "lucide-react": "^0.468.0"
+    "remark-gfm": "^4.0.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",

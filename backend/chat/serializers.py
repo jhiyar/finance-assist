@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Profile, Transaction, Balance, DocumentMetadata, EnrichedChunk, DeepAgentSession
+from .models import Profile, Transaction, Balance, DocumentMetadata, EnrichedChunk
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -59,28 +59,3 @@ class EnrichedChunkSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at']
 
 
-class DeepAgentSessionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = DeepAgentSession
-        fields = ['id', 'session_id', 'user_query', 'agent_response', 'confidence_score',
-                 'sources_used', 'processing_time', 'agent_type', 'created_at']
-        read_only_fields = ['id', 'created_at']
-
-
-class DeepAgentChatMessageSerializer(serializers.Serializer):
-    message = serializers.CharField(max_length=1000)
-    session_id = serializers.CharField(max_length=100, required=False)
-    agent_type = serializers.CharField(max_length=50, required=False, default='deep_agent')
-
-
-class DeepAgentChatResponseSerializer(serializers.Serializer):
-    type = serializers.CharField(max_length=20)
-    text = serializers.CharField(required=False, allow_blank=True)
-    session_id = serializers.CharField(max_length=100)
-    confidence_score = serializers.FloatField()
-    sources_used = serializers.ListField()
-    processing_time = serializers.FloatField()
-    agent_type = serializers.CharField(max_length=50)
-    reasoning = serializers.DictField(required=False)
-    citations = serializers.ListField(required=False)
-    source = serializers.CharField(required=False, default='deep_agent')

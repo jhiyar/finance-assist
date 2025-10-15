@@ -86,21 +86,3 @@ class EnrichedChunk(models.Model):
         return f"Chunk {self.chunk_id} from {self.document_metadata.title}"
 
 
-class DeepAgentSession(models.Model):
-    """Track deep agent chat sessions."""
-    session_id = models.CharField(max_length=100, unique=True)
-    user_query = models.TextField()
-    agent_response = models.TextField()
-    confidence_score = models.FloatField(default=0.0)
-    sources_used = models.JSONField(default=list)
-    processing_time = models.FloatField(default=0.0)  # in seconds
-    agent_type = models.CharField(max_length=50, default='deep_agent')  # deep_agent, document_agent, etc.
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        verbose_name = "Deep Agent Session"
-        verbose_name_plural = "Deep Agent Sessions"
-        ordering = ['-created_at']
-
-    def __str__(self):
-        return f"Session {self.session_id} - {self.user_query[:50]}..."

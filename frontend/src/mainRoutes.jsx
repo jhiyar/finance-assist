@@ -2,8 +2,8 @@ import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ChatInterface from './features/chat/components/ChatInterface'
-import { DocumentProcessingPage, ContextPruningTestPage, DocumentReaderComparisonPage } from './features/document-processing'
-import { MessageSquare, FileText, Home, Scissors, GitCompare } from 'lucide-react'
+import { DocumentProcessingPage, ContextPruningTestPage, DocumentListPage, DocumentDetailPage } from './features/document-processing'
+import { MessageSquare, FileText, Home, Scissors, FolderOpen } from 'lucide-react'
 
 // Create a client
 const queryClient = new QueryClient()
@@ -15,9 +15,9 @@ const Navigation = () => {
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
     { path: '/chat', label: 'Chat', icon: MessageSquare },
-    { path: '/document-processing', label: 'Document Processing', icon: FileText },
-    { path: '/context-pruning-test', label: 'Context Pruning Test', icon: Scissors },
-    { path: '/document-reader-comparison', label: 'Reader Comparison', icon: GitCompare },
+    { path: '/documents', label: 'Documents', icon: FolderOpen },
+    // { path: '/document-processing', label: 'Document Processing', icon: FileText },
+    // { path: '/context-pruning-test', label: 'Context Pruning Test', icon: Scissors },
   ]
 
   return (
@@ -77,11 +77,6 @@ export const routes = [
     path: '/context-pruning-test',
     component: ContextPruningTestPage,
     exact: true
-  },
-  {
-    path: '/document-reader-comparison',
-    component: DocumentReaderComparisonPage,
-    exact: true
   }
 ]
 
@@ -95,9 +90,10 @@ export default function MainRoutes() {
           <Routes>
             <Route path="/" element={<ChatInterface />} />
             <Route path="/chat" element={<ChatInterface />} />
+            <Route path="/documents" element={<DocumentListPage />} />
+            <Route path="/documents/:documentId" element={<DocumentDetailPage />} />
             <Route path="/document-processing" element={<DocumentProcessingPage />} />
             <Route path="/context-pruning-test" element={<ContextPruningTestPage />} />
-            <Route path="/document-reader-comparison" element={<DocumentReaderComparisonPage />} />
           </Routes>
         </div>
       </Router>

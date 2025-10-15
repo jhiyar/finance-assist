@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    DocumentUploadView, DocumentListView, DocumentDetailView,
+    DocumentUploadView, DocumentListView, DocumentDetailView, DocumentChunksView,
     ChunkingMethodListView, ChunkingMethodDetailView,
     ProcessingJobCreateView, ProcessingJobDetailView, ProcessingJobListView,
     ChunkingResultListView, ChunkingResultDetailView,
@@ -16,6 +16,7 @@ urlpatterns = [
     path('parse-document/', DocumentParseView.as_view(), name='parse_document'),
     path('documents/', DocumentListView.as_view(), name='document_list'),
     path('documents/<uuid:pk>/', DocumentDetailView.as_view(), name='document_detail'),
+    path('documents/<uuid:doc_id>/chunks/', DocumentChunksView.as_view(), name='document_chunks'),
     
     # Chunking method endpoints
     path('chunking-methods/', ChunkingMethodListView.as_view(), name='chunking_method_list'),

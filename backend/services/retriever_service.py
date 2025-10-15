@@ -3,7 +3,7 @@ import logging
 from typing import List, Dict, Any, Optional, Union
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
-from langchain.retrievers.multi_query import MultiQueryRetriever
+from langchain.retrievers import MultiQueryRetriever
 from langchain.retrievers.self_query.base import SelfQueryRetriever
 from langchain.chains.query_constructor.base import AttributeInfo
 from langchain.retrievers import ParentDocumentRetriever
