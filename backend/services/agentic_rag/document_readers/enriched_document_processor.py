@@ -15,10 +15,10 @@ import pandas as pd
 
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import FAISS
 from sentence_transformers import SentenceTransformer
 
 from services.openai_service import get_openai_service
+from services.chromadb_service import get_chromadb_service
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ class EnrichedDocumentProcessor:
         embedding_model: str = "all-MiniLM-L6-v2",
         chunk_size: int = 10000,
         chunk_overlap: int = 200,
-        collection_name: str = "agentic_rag_documents"
+        collection_name: str = "finance_documents"
     ):
         self.embedding_model = embedding_model
         self.chunk_size = chunk_size
@@ -98,7 +98,8 @@ class EnrichedDocumentProcessor:
         # Storage for processed documents
         self.documents_metadata: List[DocumentMetadata] = []
         self.enriched_chunks: List[EnrichedChunk] = []
-        self.vector_store: Optional[FAISS] = None
+        self.vector_store: Optional[Any] = None
+        self.chromadb_service: Optional[Any] = None
         
         print(f"EnrichedDocumentProcessor initialized with model: {embedding_model}", flush=True)
     
@@ -353,58 +354,52 @@ class EnrichedDocumentProcessor:
         #     }
     
     def _create_vector_store(self):
-        """Create FAISS vector store from enriched chunks."""
+        """Create ChromaDB vector store from enriched chunks."""
         try:
             if not self.enriched_chunks:
                 raise ValueError("No enriched chunks available for vector store creation")
             
-            # Prepare documents for FAISS
-            documents = []
-            metadatas = []
+            # Initialize ChromaDB service
+            self.chromadb_service = get_chromadb_service(collection_name=self.collection_name)
             
+            # Process each chunk and add to ChromaDB
             for chunk in self.enriched_chunks:
                 # Combine content with enrichment for better retrieval
                 enriched_content = f"{chunk.content}\n\nSummary: {chunk.summary}\nKeywords: {', '.join(chunk.keywords)}"
                 if chunk.faq:
                     enriched_content += f"\nFAQ: {chunk.faq}"
                 
-                doc = Document(
-                    page_content=enriched_content,
-                    metadata={
-                        **chunk.metadata,
-                        "chunk_id": chunk.chunk_id,
-                        "document_id": chunk.document_id,
-                        "summary": chunk.summary,
-                        "keywords": chunk.keywords,
-                        "faq": chunk.faq
-                    }
+                # Prepare metadata
+                metadata = {
+                    **chunk.metadata,
+                    "chunk_id": chunk.chunk_id,
+                    "document_id": chunk.document_id,
+                    "summary": chunk.summary,
+                    "keywords": chunk.keywords,
+                    "faq": chunk.faq
+                }
+                
+                # Add chunk to ChromaDB
+                chunk_data = self.chromadb_service._prepare_chunks_for_chromadb(
+                    [Document(page_content=enriched_content, metadata=metadata)], 
+                    chunk.document_id
                 )
-                documents.append(doc)
-                metadatas.append(doc.metadata)
+                
+                if chunk_data['ids']:
+                    self.chromadb_service.collection.add(
+                        ids=chunk_data['ids'],
+                        embeddings=chunk_data['embeddings'],
+                        documents=chunk_data['documents'],
+                        metadatas=chunk_data['metadatas']
+                    )
             
-            # Generate embeddings
-            texts = [doc.page_content for doc in documents]
+            # Rebuild BM25 index
+            self.chromadb_service._rebuild_bm25_index()
             
-            if self.embedding_model_instance is not None:
-                # Use sentence-transformers model
-                embeddings = self.embedding_model_instance.encode(texts)
-                self.vector_store = FAISS.from_embeddings(
-                    text_embeddings=list(zip(texts, embeddings)),
-                    embedding=self.embedding_model_instance,
-                    metadatas=metadatas
-                )
-            else:
-                # Fallback to OpenAI embeddings
-                logger.info("Using OpenAI embeddings as fallback")
-                from langchain_openai import OpenAIEmbeddings
-                openai_embeddings = OpenAIEmbeddings()
-                self.vector_store = FAISS.from_documents(
-                    documents=documents,
-                    embedding=openai_embeddings,
-                    metadatas=metadatas
-                )
+            # Set vector_store reference to ChromaDB service for compatibility
+            self.vector_store = self.chromadb_service
             
-            logger.info(f"Created FAISS vector store with {len(documents)} documents")
+            logger.info(f"Created ChromaDB vector store with {len(self.enriched_chunks)} chunks in collection '{self.collection_name}'")
             
         except Exception as e:
             logger.error(f"Failed to create vector store: {e}")
@@ -427,10 +422,16 @@ class EnrichedDocumentProcessor:
             with open(chunks_file, 'w', encoding='utf-8') as f:
                 json.dump([asdict(chunk) for chunk in self.enriched_chunks], f, indent=2)
             
-            # Save vector store
+            # Save vector store info (ChromaDB is persistent)
             if self.vector_store:
-                vector_store_path = artifacts_path / "vector_store"
-                self.vector_store.save_local(str(vector_store_path))
+                vector_store_info = {
+                    "type": "chromadb",
+                    "collection_name": self.collection_name,
+                    "persist_directory": "./chroma_db"
+                }
+                vector_store_info_file = artifacts_path / "vector_store_info.json"
+                with open(vector_store_info_file, 'w', encoding='utf-8') as f:
+                    json.dump(vector_store_info, f, indent=2)
             
             logger.info(f"Saved artifacts to {artifacts_path}")
             
@@ -457,25 +458,24 @@ class EnrichedDocumentProcessor:
                     chunks_data = json.load(f)
                     self.enriched_chunks = [EnrichedChunk(**chunk) for chunk in chunks_data]
             
-            # Load vector store
-            vector_store_path = artifacts_path / "vector_store"
-            if vector_store_path.exists():
-                if self.embedding_model_instance is not None:
-                    self.vector_store = FAISS.load_local(
-                        str(vector_store_path),
-                        self.embedding_model_instance,
-                        allow_dangerous_deserialization=True
-                    )
-                else:
-                    # Fallback to OpenAI embeddings for loading
-                    logger.info("Loading vector store with OpenAI embeddings fallback")
-                    from langchain_openai import OpenAIEmbeddings
-                    openai_embeddings = OpenAIEmbeddings()
-                    self.vector_store = FAISS.load_local(
-                        str(vector_store_path),
-                        openai_embeddings,
-                        allow_dangerous_deserialization=True
-                    )
+            # Load vector store info and initialize ChromaDB service
+            vector_store_info_file = artifacts_path / "vector_store_info.json"
+            if vector_store_info_file.exists():
+                with open(vector_store_info_file, 'r', encoding='utf-8') as f:
+                    vector_store_info = json.load(f)
+                    if vector_store_info.get("type") == "chromadb":
+                        self.chromadb_service = get_chromadb_service(collection_name=vector_store_info["collection_name"])
+                        self.vector_store = self.chromadb_service
+                        logger.info(f"Loaded ChromaDB vector store from collection '{vector_store_info['collection_name']}'")
+                    else:
+                        logger.warning("Unknown vector store type in artifacts, initializing new ChromaDB service")
+                        self.chromadb_service = get_chromadb_service(collection_name=self.collection_name)
+                        self.vector_store = self.chromadb_service
+            else:
+                # No vector store artifacts found, initialize new ChromaDB service
+                logger.info("No vector store artifacts found, initializing new ChromaDB service")
+                self.chromadb_service = get_chromadb_service(collection_name=self.collection_name)
+                self.vector_store = self.chromadb_service
             
             logger.info(f"Loaded artifacts from {artifacts_path}")
             

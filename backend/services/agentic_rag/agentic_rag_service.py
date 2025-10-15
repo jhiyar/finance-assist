@@ -32,7 +32,7 @@ class AgenticRAGService:
         documents_directory: str = "sample_documents",
         model_name: str = "gpt-4o-mini",
         enable_evaluation: bool = False,
-        collection_name: str = "agentic_rag_documents",
+        collection_name: str = "finance_documents",
         max_tokens: int = 4000
     ):
         self.documents_directory = documents_directory

@@ -41,7 +41,7 @@ function ChatInterface() {
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ 
           message: trimmed, 
-          retriever_type: 'agentic_rag' // Use agentic RAG by default
+          retriever_type: 'hybrid_search' //  agentic_rag, hybrid_search
         }) 
       })
       const data = await res.json()

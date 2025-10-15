@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   FaFileAlt, 
@@ -15,6 +15,7 @@ const API_BASE_URL = 'http://localhost:8000/api';
 
 const DocumentListPage = () => {
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -67,7 +68,9 @@ const DocumentListPage = () => {
       setSelectedFile(null);
       
       // Reset file input
-      document.getElementById('file-input').value = '';
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -141,7 +144,7 @@ const DocumentListPage = () => {
         </h2>
         <div className="flex items-center space-x-4">
           <input
-            id="file-input"
+            ref={fileInputRef}
             type="file"
             accept=".pdf,.docx,.txt,.md"
             onChange={handleFileSelect}

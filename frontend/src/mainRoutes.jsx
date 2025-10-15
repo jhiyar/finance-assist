@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ChatInterface from './features/chat/components/ChatInterface'
 import { DocumentProcessingPage, ContextPruningTestPage, DocumentListPage, DocumentDetailPage } from './features/document-processing'
-import { MessageSquare, FileText, Home, Scissors, FolderOpen } from 'lucide-react'
+import { ConversationsPage } from './features/conversations'
+import { MessageSquare, FileText, Home, Scissors, FolderOpen, MessageCircle } from 'lucide-react'
 
 // Create a client
 const queryClient = new QueryClient()
@@ -15,6 +16,7 @@ const Navigation = () => {
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
     { path: '/chat', label: 'Chat', icon: MessageSquare },
+    { path: '/conversations', label: 'Conversations', icon: MessageCircle },
     { path: '/documents', label: 'Documents', icon: FolderOpen },
     // { path: '/document-processing', label: 'Document Processing', icon: FileText },
     // { path: '/context-pruning-test', label: 'Context Pruning Test', icon: Scissors },
@@ -90,6 +92,7 @@ export default function MainRoutes() {
           <Routes>
             <Route path="/" element={<ChatInterface />} />
             <Route path="/chat" element={<ChatInterface />} />
+            <Route path="/conversations" element={<ConversationsPage />} />
             <Route path="/documents" element={<DocumentListPage />} />
             <Route path="/documents/:documentId" element={<DocumentDetailPage />} />
             <Route path="/document-processing" element={<DocumentProcessingPage />} />

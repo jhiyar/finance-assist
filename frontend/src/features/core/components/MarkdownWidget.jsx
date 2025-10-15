@@ -7,7 +7,7 @@ function MarkdownWidget({ content, isUser = false }) {
     h1: ({ children }) => <h1 className="text-xl font-bold mb-2 text-gray-900">{children}</h1>,
     h2: ({ children }) => <h2 className="text-lg font-semibold mb-2 text-gray-800">{children}</h2>,
     h3: ({ children }) => <h3 className="text-base font-medium mb-1 text-gray-700">{children}</h3>,
-    p: ({ children }) => <p className="mb-2 text-gray-700 leading-relaxed">{children}</p>,
+    p: ({ children }) => <p className="mb-2  leading-relaxed">{children}</p>,
     ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1 text-gray-700">{children}</ul>,
     ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1 text-gray-700">{children}</ol>,
     li: ({ children }) => <li className="text-gray-700">{children}</li>,

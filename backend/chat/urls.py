@@ -4,7 +4,11 @@ from .views import (
     TransactionListView,
     BalanceDetailView,
     ChatView,
-    AgenticRAGTestView
+    AgenticRAGTestView,
+    ConversationListView,
+    ConversationDetailView,
+    ConversationMessagesView,
+    ConversationChatView
 )
 from .retriever_views import (
     RetrieverDemoView,
@@ -27,4 +31,10 @@ urlpatterns = [
     path('retriever-demo', RetrieverDemoView.as_view(), name='retriever_demo'),
     path('movies-retriever-demo', MoviesRetrieverDemoView.as_view(), name='movies_retriever_demo'),
     path('retriever-examples', retriever_examples, name='retriever_examples'),
+    
+    # Conversation endpoints
+    path('conversations', ConversationListView.as_view(), name='conversation_list'),
+    path('conversations/<int:pk>', ConversationDetailView.as_view(), name='conversation_detail'),
+    path('conversations/<int:conversation_id>/messages', ConversationMessagesView.as_view(), name='conversation_messages'),
+    path('conversations/<int:conversation_id>/chat', ConversationChatView.as_view(), name='conversation_chat'),
 ]

@@ -322,7 +322,7 @@ class ChromaDBService:
             return search_results
             
         except Exception as e:
-            logger.error(f"Vector search failed: {e}")
+            logger.error(f"CromaDB service, Vector search failed: {e}")
             return []
     
     def _bm25_search(

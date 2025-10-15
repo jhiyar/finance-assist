@@ -86,3 +86,85 @@ class EnrichedChunk(models.Model):
         return f"Chunk {self.chunk_id} from {self.document_metadata.title}"
 
 
+class Conversation(models.Model):
+    """Store conversation sessions for chat functionality."""
+    title = models.CharField(max_length=255, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+    
+    # Optional: Link to a user profile if you have user authentication
+    # profile = models.ForeignKey(Profile, on_delete=models.CASCADE, null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Conversation"
+        verbose_name_plural = "Conversations"
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return self.title or f"Conversation {self.id}"
+
+    def get_message_count(self):
+        """Get the number of messages in this conversation."""
+        return self.messages.count()
+
+    def get_last_message(self):
+        """Get the last message in this conversation."""
+        return self.messages.order_by('-created_at').first()
+
+
+class Message(models.Model):
+    """Store individual messages within conversations."""
+    MESSAGE_TYPES = [
+        ('user', 'User'),
+        ('assistant', 'Assistant'),
+        ('system', 'System'),
+    ]
+    
+    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages')
+    content = models.TextField()
+    message_type = models.CharField(max_length=20, choices=MESSAGE_TYPES)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    # Store additional metadata for RAG responses
+    retriever_type = models.CharField(max_length=50, blank=True, null=True)  # 'hybrid_search', 'agentic_rag', etc.
+    source = models.CharField(max_length=50, blank=True, null=True)  # 'hybrid_search', 'agentic_rag', 'intent_detection'
+    confidence = models.FloatField(blank=True, null=True)
+    
+    # Store sources and citations for RAG responses
+    sources = models.JSONField(default=list, blank=True)  # List of source documents
+    citations = models.JSONField(default=list, blank=True)  # List of citations
+    search_stats = models.JSONField(default=dict, blank=True)  # Search statistics
+    
+    # Store processing details for agentic RAG
+    rag_details = models.JSONField(default=dict, blank=True)  # Processing info, reasoning, etc.
+
+    class Meta:
+        verbose_name = "Message"
+        verbose_name_plural = "Messages"
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.message_type}: {self.content[:50]}..."
+
+    def get_conversation_title(self):
+        """Get the conversation title this message belongs to."""
+        return self.conversation.title or f"Conversation {self.conversation.id}"
+
+
+class DeepAgentSession(models.Model):
+    """Store sessions for deep agent interactions (legacy model - keeping for compatibility)."""
+    session_id = models.CharField(max_length=100, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Deep Agent Session"
+        verbose_name_plural = "Deep Agent Sessions"
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"Session {self.session_id}"
+
+

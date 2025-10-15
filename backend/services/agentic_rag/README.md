@@ -12,7 +12,7 @@ The Enhanced Agentic-RAG system consists of two main pipelines:
 - **LLM Enrichment**: Generates summaries, keywords, and FAQs for each chunk
 - **Chunking**: Intelligent chunking with metadata preservation
 - **Embedding Generation**: Creates vector embeddings using SentenceTransformers
-- **Vector Store**: Stores embeddings in FAISS for fast similarity search
+- **Vector Store**: Stores embeddings in ChromaDB for fast similarity search
 - **Artifact Storage**: Saves processing results for online pipeline
 
 ### 2. Online Pipeline (Query Processing)
@@ -289,7 +289,6 @@ logging.basicConfig(level=logging.DEBUG)
 
 - [Uber Engineering Blog: Enhanced Agentic-RAG](https://www.uber.com/en-GB/blog/enhanced-agentic-rag/)
 - [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
-- [FAISS Documentation](https://faiss.ai/)
 - [SentenceTransformers Documentation](https://www.sbert.net/)
 
 ## 🤝 Contributing
