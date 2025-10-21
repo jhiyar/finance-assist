@@ -31,7 +31,7 @@ jobs:
 
     - name: Build and start services
       run: |
-        docker-compose -f docker-compose.ci.yml up --build -d
+        docker compose -f docker-compose.ci.yml up --build -d
 
     - name: Wait for services to be ready
       run: |
@@ -40,7 +40,7 @@ jobs:
         
         # Wait for database
         for i in {1..30}; do
-          if docker-compose -f docker-compose.ci.yml exec -T db mysqladmin ping -h localhost --silent; then
+          if docker compose -f docker-compose.ci.yml exec -T db mysqladmin ping -h localhost --silent; then
             echo "Database is ready!"
             break
           fi
@@ -60,11 +60,11 @@ jobs:
 
     - name: Run database migrations
       run: |
-        docker-compose -f docker-compose.ci.yml exec -T backend python manage.py migrate
+        docker compose -f docker-compose.ci.yml exec -T backend python manage.py migrate
 
     - name: Create superuser
       run: |
-        docker-compose -f docker-compose.ci.yml exec -T backend python manage.py shell -c "
+        docker compose -f docker-compose.ci.yml exec -T backend python manage.py shell -c "
         from django.contrib.auth import get_user_model
         User = get_user_model()
         if not User.objects.filter(username='admin').exists():
@@ -84,14 +84,14 @@ jobs:
       if: always()
       run: |
         echo "=== Backend Logs ==="
-        docker-compose -f docker-compose.ci.yml logs backend
+        docker compose -f docker-compose.ci.yml logs backend
         echo "=== Database Logs ==="
-        docker-compose -f docker-compose.ci.yml logs db
+        docker compose -f docker-compose.ci.yml logs db
 
     - name: Cleanup
       if: always()
       run: |
-        docker-compose -f docker-compose.ci.yml down -v
+        docker compose -f docker-compose.ci.yml down -v
 
     - name: Deploy success
       if: success()
