@@ -105,6 +105,3 @@ jobs:
         echo "🔑 Default admin credentials:"
         echo "  - Username: admin"
         echo "  - Password: admin123"
-
-
-
