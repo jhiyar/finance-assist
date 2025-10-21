@@ -10,21 +10,15 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    ports:
-      - "8081:80"
-    environment:
-      PMA_HOST: db
-      PMA_PORT: 3306
-      PMA_USER: finance_user
-      PMA_PASSWORD: finance_password
-    depends_on:
-      - db
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
 
   backend:
-    build: ./backend
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     volumes:
@@ -39,21 +33,19 @@ services:
       - OPENAI_MAX_TOKENS=${OPENAI_MAX_TOKENS:-4096}
       - UNSTRUCTURED_API_KEY=${UNSTRUCTURED_API_KEY}
       - LLAMAPARSE_API_KEY=${LLAMAPARSE_API_KEY}
-      - SECRET_KEY=${SECRET_KEY:-django-insecure-local-development-key}
-      - DEBUG=${DEBUG:-True}
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=False
+      - ALLOWED_HOSTS=*
       - DATABASE_URL=mysql://finance_user:finance_password@db:3306/finance_assist
     depends_on:
-      - db
-
-  frontend:
-    build: ./frontend
-    ports:
-      - "8080:80"
-    depends_on:
-      - backend
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/admin/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   mysql_data:
   chroma_data:
-
