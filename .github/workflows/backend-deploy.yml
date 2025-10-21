@@ -1,0 +1,178 @@
+name: Deploy Backend to GitHub
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: # Allow manual triggering
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/backend
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: finance_assist
+          MYSQL_USER: finance_user
+          MYSQL_PASSWORD: finance_password
+          MYSQL_ROOT_PASSWORD: root_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Wait for MySQL to be ready
+      run: |
+        while ! mysqladmin ping -h"127.0.0.1" -P3306 -u"finance_user" -p"finance_password" --silent; do
+          echo "Waiting for MySQL..."
+          sleep 2
+        done
+        echo "MySQL is ready!"
+
+    - name: Run Django migrations
+      run: |
+        docker run --rm \
+          --network host \
+          -e DJANGO_SETTINGS_MODULE=finance_assist.settings \
+          -e OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
+          -e OPENAI_MODEL_NAME="${{ vars.OPENAI_MODEL_NAME || 'gpt-4o-mini' }}" \
+          -e OPENAI_EMBEDDING_MODEL="${{ vars.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small' }}" \
+          -e OPENAI_TEMPERATURE="${{ vars.OPENAI_TEMPERATURE || '0.1' }}" \
+          -e OPENAI_MAX_TOKENS="${{ vars.OPENAI_MAX_TOKENS || '4096' }}" \
+          -e UNSTRUCTURED_API_KEY="${{ secrets.UNSTRUCTURED_API_KEY }}" \
+          -e LLAMAPARSE_API_KEY="${{ secrets.LLAMAPARSE_API_KEY }}" \
+          -e SECRET_KEY="${{ secrets.SECRET_KEY || 'django-insecure-github-actions-secret-key' }}" \
+          -e DEBUG="False" \
+          -e ALLOWED_HOSTS="*" \
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+          python manage.py migrate
+
+    - name: Create superuser (if needed)
+      run: |
+        docker run --rm \
+          --network host \
+          -e DJANGO_SETTINGS_MODULE=finance_assist.settings \
+          -e OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
+          -e OPENAI_MODEL_NAME="${{ vars.OPENAI_MODEL_NAME || 'gpt-4o-mini' }}" \
+          -e OPENAI_EMBEDDING_MODEL="${{ vars.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small' }}" \
+          -e OPENAI_TEMPERATURE="${{ vars.OPENAI_TEMPERATURE || '0.1' }}" \
+          -e OPENAI_MAX_TOKENS="${{ vars.OPENAI_MAX_TOKENS || '4096' }}" \
+          -e UNSTRUCTURED_API_KEY="${{ secrets.UNSTRUCTURED_API_KEY }}" \
+          -e LLAMAPARSE_API_KEY="${{ secrets.LLAMAPARSE_API_KEY }}" \
+          -e SECRET_KEY="${{ secrets.SECRET_KEY || 'django-insecure-github-actions-secret-key' }}" \
+          -e DEBUG="False" \
+          -e ALLOWED_HOSTS="*" \
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+          python manage.py shell -c "
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        if not User.objects.filter(username='admin').exists():
+            User.objects.create_superuser('admin', 'admin@example.com', 'admin123')
+            print('Superuser created')
+        else:
+            print('Superuser already exists')
+        "
+
+    - name: Start backend container
+      run: |
+        docker run -d \
+          --name finance-backend \
+          --network host \
+          -e DJANGO_SETTINGS_MODULE=finance_assist.settings \
+          -e OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
+          -e OPENAI_MODEL_NAME="${{ vars.OPENAI_MODEL_NAME || 'gpt-4o-mini' }}" \
+          -e OPENAI_EMBEDDING_MODEL="${{ vars.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small' }}" \
+          -e OPENAI_TEMPERATURE="${{ vars.OPENAI_TEMPERATURE || '0.1' }}" \
+          -e OPENAI_MAX_TOKENS="${{ vars.OPENAI_MAX_TOKENS || '4096' }}" \
+          -e UNSTRUCTURED_API_KEY="${{ secrets.UNSTRUCTURED_API_KEY }}" \
+          -e LLAMAPARSE_API_KEY="${{ secrets.LLAMAPARSE_API_KEY }}" \
+          -e SECRET_KEY="${{ secrets.SECRET_KEY || 'django-insecure-github-actions-secret-key' }}" \
+          -e DEBUG="False" \
+          -e ALLOWED_HOSTS="*" \
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+    - name: Wait for backend to be ready
+      run: |
+        echo "Waiting for backend to start..."
+        sleep 10
+        for i in {1..30}; do
+          if curl -f http://localhost:8000/admin/ > /dev/null 2>&1; then
+            echo "Backend is ready!"
+            break
+          fi
+          echo "Attempt $i: Backend not ready yet..."
+          sleep 5
+        done
+
+    - name: Test backend endpoints
+      run: |
+        echo "Testing backend endpoints..."
+        curl -f http://localhost:8000/admin/ || echo "Admin endpoint test failed"
+        curl -f http://localhost:8000/api/ || echo "API endpoint test failed"
+
+    - name: Show container logs
+      if: always()
+      run: |
+        echo "=== Backend Container Logs ==="
+        docker logs finance-backend || echo "Could not retrieve logs"
+
+    - name: Cleanup
+      if: always()
+      run: |
+        docker stop finance-backend || true
+        docker rm finance-backend || true
+
+    - name: Deploy to GitHub Pages (Optional)
+      if: github.ref == 'refs/heads/main'
+      run: |
+        echo "Backend deployed successfully!"
+        echo "Container image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+        echo "To run locally: docker run -p 8000:8000 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+
+
+

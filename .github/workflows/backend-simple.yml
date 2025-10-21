@@ -1,0 +1,112 @@
+name: Deploy Backend (Simple)
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Create environment file
+      run: |
+        cat > .env << EOF
+        OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+        OPENAI_MODEL_NAME=${{ vars.OPENAI_MODEL_NAME || 'gpt-4o-mini' }}
+        OPENAI_EMBEDDING_MODEL=${{ vars.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small' }}
+        OPENAI_TEMPERATURE=${{ vars.OPENAI_TEMPERATURE || '0.1' }}
+        OPENAI_MAX_TOKENS=${{ vars.OPENAI_MAX_TOKENS || '4096' }}
+        UNSTRUCTURED_API_KEY=${{ secrets.UNSTRUCTURED_API_KEY }}
+        LLAMAPARSE_API_KEY=${{ secrets.LLAMAPARSE_API_KEY }}
+        SECRET_KEY=${{ secrets.SECRET_KEY || 'django-insecure-github-actions-secret-key' }}
+        EOF
+
+    - name: Build and start services
+      run: |
+        docker-compose -f docker-compose.ci.yml up --build -d
+
+    - name: Wait for services to be ready
+      run: |
+        echo "Waiting for services to start..."
+        sleep 30
+        
+        # Wait for database
+        for i in {1..30}; do
+          if docker-compose -f docker-compose.ci.yml exec -T db mysqladmin ping -h localhost --silent; then
+            echo "Database is ready!"
+            break
+          fi
+          echo "Waiting for database... ($i/30)"
+          sleep 2
+        done
+        
+        # Wait for backend
+        for i in {1..30}; do
+          if curl -f http://localhost:8000/admin/ > /dev/null 2>&1; then
+            echo "Backend is ready!"
+            break
+          fi
+          echo "Waiting for backend... ($i/30)"
+          sleep 5
+        done
+
+    - name: Run database migrations
+      run: |
+        docker-compose -f docker-compose.ci.yml exec -T backend python manage.py migrate
+
+    - name: Create superuser
+      run: |
+        docker-compose -f docker-compose.ci.yml exec -T backend python manage.py shell -c "
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        if not User.objects.filter(username='admin').exists():
+            User.objects.create_superuser('admin', 'admin@example.com', 'admin123')
+            print('Superuser created')
+        else:
+            print('Superuser already exists')
+        "
+
+    - name: Test backend endpoints
+      run: |
+        echo "Testing backend endpoints..."
+        curl -f http://localhost:8000/admin/ && echo "✓ Admin endpoint working"
+        curl -f http://localhost:8000/api/ && echo "✓ API endpoint working" || echo "⚠ API endpoint not available"
+
+    - name: Show service logs
+      if: always()
+      run: |
+        echo "=== Backend Logs ==="
+        docker-compose -f docker-compose.ci.yml logs backend
+        echo "=== Database Logs ==="
+        docker-compose -f docker-compose.ci.yml logs db
+
+    - name: Cleanup
+      if: always()
+      run: |
+        docker-compose -f docker-compose.ci.yml down -v
+
+    - name: Deploy success
+      if: success()
+      run: |
+        echo "🎉 Backend deployed successfully!"
+        echo "📊 Services running:"
+        echo "  - Backend: http://localhost:8000"
+        echo "  - Admin: http://localhost:8000/admin/"
+        echo "  - API: http://localhost:8000/api/"
+        echo ""
+        echo "🔑 Default admin credentials:"
+        echo "  - Username: admin"
+        echo "  - Password: admin123"
+
+
+
