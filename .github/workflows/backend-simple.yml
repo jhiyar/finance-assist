@@ -26,8 +26,6 @@ jobs:
         OPENAI_EMBEDDING_MODEL=${{ vars.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small' }}
         OPENAI_TEMPERATURE=${{ vars.OPENAI_TEMPERATURE || '0.1' }}
         OPENAI_MAX_TOKENS=${{ vars.OPENAI_MAX_TOKENS || '4096' }}
-        UNSTRUCTURED_API_KEY=${{ secrets.UNSTRUCTURED_API_KEY }}
-        LLAMAPARSE_API_KEY=${{ secrets.LLAMAPARSE_API_KEY }}
         SECRET_KEY=${{ secrets.SECRET_KEY || 'django-insecure-github-actions-secret-key' }}
         EOF
 
