@@ -15,7 +15,12 @@ import pandas as pd
 
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from sentence_transformers import SentenceTransformer
+# Optional sentence_transformers - will fallback to OpenAI if not available
+try:
+    from sentence_transformers import SentenceTransformer
+    SENTENCE_TRANSFORMERS_AVAILABLE = True
+except ImportError:
+    SENTENCE_TRANSFORMERS_AVAILABLE = False
 
 from services.openai_service import get_openai_service
 from services.chromadb_service import get_chromadb_service
@@ -76,17 +81,17 @@ class EnrichedDocumentProcessor:
         self.llm_service = get_openai_service()
         self.llm = self.llm_service.get_langchain_llm()
         
-        # Initialize embedding model with error handling
-        try:
-            self.embedding_model_instance = SentenceTransformer(embedding_model)
-        except Exception as e:
-            if "SSL" in str(e) or "certificate" in str(e).lower():
-                logger.warning(f"SSL certificate issue downloading model {embedding_model}. "
-                             f"Falling back to OpenAI embeddings. Error: {e}")
+        # Initialize embedding model with fallback
+        if SENTENCE_TRANSFORMERS_AVAILABLE:
+            try:
+                self.embedding_model_instance = SentenceTransformer(embedding_model)
+                logger.info(f"Using sentence_transformers model: {embedding_model}")
+            except Exception as e:
+                logger.warning(f"Failed to load sentence_transformers model {embedding_model}: {e}")
                 self.embedding_model_instance = None
-            else:
-                logger.error(f"Failed to initialize embedding model {embedding_model}: {e}")
-                self.embedding_model_instance = None
+        else:
+            logger.info("sentence_transformers not available, using OpenAI embeddings")
+            self.embedding_model_instance = None
         
         # Initialize text splitter
         self.text_splitter = RecursiveCharacterTextSplitter(

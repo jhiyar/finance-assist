@@ -16,7 +16,12 @@ import chromadb
 from chromadb.config import Settings
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from sentence_transformers import SentenceTransformer
+# Optional sentence_transformers - will fallback to OpenAI if not available
+try:
+    from sentence_transformers import SentenceTransformer
+    SENTENCE_TRANSFORMERS_AVAILABLE = True
+except ImportError:
+    SENTENCE_TRANSFORMERS_AVAILABLE = False
 from rank_bm25 import BM25Okapi
 import numpy as np
 from collections import defaultdict

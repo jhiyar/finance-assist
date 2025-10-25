@@ -28,7 +28,10 @@ class SemanticChunker(BaseChunker):
             model_name = self.config.get('embedding_model', 'all-MiniLM-L6-v2')
             return SentenceTransformer(model_name)
         except ImportError:
-            logger.warning("SentenceTransformers not available. Install with: pip install sentence-transformers")
+            logger.warning("SentenceTransformers not available. Using OpenAI embeddings instead.")
+            return None
+        except Exception as e:
+            logger.warning(f"Failed to load sentence_transformers model: {e}. Using OpenAI embeddings instead.")
             return None
     
     def chunk(self, parsed_document: ParsedDocument, **kwargs) -> ChunkingResult:

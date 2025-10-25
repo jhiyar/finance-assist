@@ -21,7 +21,12 @@ from langchain_core.documents import Document
 from langchain.retrievers.document_compressors import LLMChainExtractor
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain_openai import ChatOpenAI
-from sentence_transformers import SentenceTransformer
+# Optional sentence_transformers - will fallback to OpenAI if not available
+try:
+    from sentence_transformers import SentenceTransformer
+    SENTENCE_TRANSFORMERS_AVAILABLE = True
+except ImportError:
+    SENTENCE_TRANSFORMERS_AVAILABLE = False
 from sklearn.metrics.pairwise import cosine_similarity
 
 from .openai_service import get_openai_service

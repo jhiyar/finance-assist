@@ -1,0 +1,7 @@
+docker build -t finance-assist .
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 521307243146.dkr.ecr.us-east-1.amazonaws.com
+
+aws ecr create-repository --repository-name finance-assist --region us-east-1
+
+docker tag finance-assist:latest 521307243146.dkr.ecr.us-east-1.amazonaws.com/finance-assist:latest
+docker push 521307243146.dkr.ecr.us-east-1.amazonaws.com/finance-assist:latest

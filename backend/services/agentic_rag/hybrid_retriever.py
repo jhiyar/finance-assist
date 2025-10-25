@@ -12,7 +12,12 @@ import numpy as np
 from collections import defaultdict
 
 from langchain_core.documents import Document
-from sentence_transformers import SentenceTransformer
+# Optional sentence_transformers - will fallback to OpenAI if not available
+try:
+    from sentence_transformers import SentenceTransformer
+    SENTENCE_TRANSFORMERS_AVAILABLE = True
+except ImportError:
+    SENTENCE_TRANSFORMERS_AVAILABLE = False
 from rank_bm25 import BM25Okapi
 
 from services.openai_service import get_openai_service
