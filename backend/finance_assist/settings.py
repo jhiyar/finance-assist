@@ -76,19 +76,32 @@ WSGI_APPLICATION = 'finance_assist.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'finance_assist',
-        'USER': 'finance_user',
-        'PASSWORD': 'finance_password',
-        'HOST': 'db',
-        'PORT': '3306',
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-        },
+# Database configuration - use SQLite for AWS App Runner if no database is available
+import os
+
+if os.getenv('DB_HOST'):
+    # Use MySQL if DB_HOST is set
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.getenv('DB_NAME', 'finance_assist'),
+            'USER': os.getenv('DB_USER', 'finance_user'),
+            'PASSWORD': os.getenv('DB_PASSWORD', 'finance_password'),
+            'HOST': os.getenv('DB_HOST', 'db'),
+            'PORT': os.getenv('DB_PORT', '3306'),
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+            },
+        }
     }
-}
+else:
+    # Use SQLite for AWS App Runner deployment
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation

@@ -19,8 +19,12 @@ RUN pip install --no-cache-dir -r requirements.txt gunicorn
 # Copy project files
 COPY backend/ .
 
-# Collect static files
+# Run migrations and collect static files
+RUN python manage.py migrate --noinput || echo "No migrations to run"
 RUN python manage.py collectstatic --noinput || echo "No static files to collect"
+
+# Create superuser
+RUN echo "from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.create_superuser('admin', 'admin@example.com', 'admin123') if not User.objects.filter(username='admin').exists() else None" | python manage.py shell || echo "Superuser creation skipped"
 
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
