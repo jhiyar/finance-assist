@@ -15,6 +15,14 @@ from .retriever_views import (
     MoviesRetrieverDemoView,
     retriever_examples
 )
+from .confluence_views import (
+    confluence_documents_list,
+    confluence_document_detail,
+    confluence_fetch_documents,
+    confluence_index_documents,
+    confluence_document_chunks,
+    confluence_document_delete
+)
 
 app_name = 'chat'
 
@@ -37,4 +45,12 @@ urlpatterns = [
     path('conversations/<int:pk>', ConversationDetailView.as_view(), name='conversation_detail'),
     path('conversations/<int:conversation_id>/messages', ConversationMessagesView.as_view(), name='conversation_messages'),
     path('conversations/<int:conversation_id>/chat', ConversationChatView.as_view(), name='conversation_chat'),
+    
+    # Confluence document endpoints
+    path('confluence/documents', confluence_documents_list, name='confluence_documents_list'),
+    path('confluence/documents/<int:document_id>', confluence_document_detail, name='confluence_document_detail'),
+    path('confluence/documents/<int:document_id>/chunks', confluence_document_chunks, name='confluence_document_chunks'),
+    path('confluence/fetch', confluence_fetch_documents, name='confluence_fetch_documents'),
+    path('confluence/index', confluence_index_documents, name='confluence_index_documents'),
+    path('confluence/documents/<int:document_id>/delete', confluence_document_delete, name='confluence_document_delete'),
 ]

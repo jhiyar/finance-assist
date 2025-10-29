@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Profile, Transaction, Balance, DocumentMetadata, EnrichedChunk, Conversation, Message
+from .models import Profile, Transaction, Balance, DocumentMetadata, EnrichedChunk, Conversation, Message, ConfluenceDocument
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -142,4 +142,35 @@ class ConversationUpdateSerializer(serializers.ModelSerializer):
         model = Conversation
         fields = ['title', 'is_active']
 
+
+class ConfluenceDocumentSerializer(serializers.ModelSerializer):
+    """Serializer for Confluence documents."""
+    is_outdated = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = ConfluenceDocument
+        fields = [
+            'id', 'confluence_id', 'title', 'content', 'html_content',
+            'space_key', 'space_name', 'version', 'url', 'ancestors',
+            'parent_id', 'confluence_created', 'confluence_modified',
+            'created_at', 'updated_at', 'is_indexed', 'last_indexed',
+            'indexing_error', 'is_outdated'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at', 'is_outdated']
+
+
+class ConfluenceFetchSerializer(serializers.Serializer):
+    """Serializer for Confluence fetch requests."""
+    parent_id = serializers.CharField(max_length=50, default="27394188")
+    force_refresh = serializers.BooleanField(default=False)
+
+
+class ConfluenceIndexSerializer(serializers.Serializer):
+    """Serializer for Confluence indexing requests."""
+    document_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        help_text="List of document IDs to index. If empty, indexes all documents."
+    )
+    force_reindex = serializers.BooleanField(default=False)
 

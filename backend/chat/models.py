@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 import json
 
 
@@ -166,5 +167,64 @@ class DeepAgentSession(models.Model):
 
     def __str__(self):
         return f"Session {self.session_id}"
+
+
+class ConfluenceDocument(models.Model):
+    """Model to store Confluence documents"""
+    
+    confluence_id = models.CharField(max_length=50, unique=True, help_text="Confluence page ID")
+    title = models.CharField(max_length=500)
+    content = models.TextField()
+    html_content = models.TextField(blank=True)
+    space_key = models.CharField(max_length=100, blank=True)
+    space_name = models.CharField(max_length=200, blank=True)
+    version = models.IntegerField(default=1)
+    url = models.URLField(max_length=1000)
+    ancestors = models.JSONField(default=list, blank=True)
+    parent_id = models.CharField(max_length=50, blank=True)
+    
+    # Timestamps
+    confluence_created = models.DateTimeField(null=True, blank=True)
+    confluence_modified = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # Processing status
+    is_indexed = models.BooleanField(default=False)
+    last_indexed = models.DateTimeField(null=True, blank=True)
+    indexing_error = models.TextField(blank=True)
+    
+    class Meta:
+        ordering = ['-updated_at']
+        verbose_name = "Confluence Document"
+        verbose_name_plural = "Confluence Documents"
+    
+    def __str__(self):
+        return f"{self.title} (ID: {self.confluence_id})"
+    
+    @property
+    def is_outdated(self):
+        """Check if the document needs to be updated based on Confluence version"""
+        if not self.confluence_modified:
+            return False
+        
+        # Handle timezone comparison properly
+        
+        # Make both datetimes timezone-aware for comparison
+        confluence_modified = self.confluence_modified
+        if confluence_modified.tzinfo is None:
+            # If confluence_modified is naive, assume UTC
+            confluence_modified = timezone.make_aware(confluence_modified, timezone.utc)
+        
+        updated_at = self.updated_at
+        if updated_at.tzinfo is None:
+            # If updated_at is naive, make it timezone-aware using Django's timezone
+            updated_at = timezone.make_aware(updated_at)
+        
+        try:
+            return updated_at < confluence_modified
+        except Exception:
+            # If there's any timezone comparison error, assume not outdated
+            return False
 
 
