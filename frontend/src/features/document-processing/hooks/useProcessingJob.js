@@ -1,13 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:8000/api/document-processing';
+import { API_BASE_URL } from '../../../config/api.js';
 
 export const useProcessingJobs = () => {
   return useQuery({
     queryKey: ['processing-jobs'],
     queryFn: async () => {
-      const response = await axios.get(`${API_BASE_URL}/processing-jobs/`);
+      const response = await axios.get(`${API_BASE_URL}/document-processing/processing-jobs/`);
       return response.data;
     },
   });
@@ -18,7 +17,7 @@ export const useProcessingJob = (jobId) => {
     queryKey: ['processing-job', jobId],
     queryFn: async () => {
       const response = await axios.get(
-        `${API_BASE_URL}/processing-jobs/${jobId}/`
+        `${API_BASE_URL}/document-processing/processing-jobs/${jobId}/`
       );
       return response.data;
     },
@@ -36,7 +35,7 @@ export const useProcessDocument = () => {
   return useMutation({
     mutationFn: async ({ documentId, chunkingMethodIds, configuration }) => {
       const response = await axios.post(
-        `${API_BASE_URL}/documents/${documentId}/process/`,
+        `${API_BASE_URL}/document-processing/documents/${documentId}/process/`,
         {
           chunking_method_ids: chunkingMethodIds,
           configuration,
@@ -58,7 +57,7 @@ export const useCompareMethods = () => {
   return useMutation({
     mutationFn: async (documentId) => {
       const response = await axios.post(
-        `${API_BASE_URL}/documents/${documentId}/compare/`
+        `${API_BASE_URL}/document-processing/documents/${documentId}/compare/`
       );
       return response.data;
     },

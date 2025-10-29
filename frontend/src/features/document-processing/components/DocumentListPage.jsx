@@ -10,8 +10,7 @@ import {
   FaCheckCircle,
   FaTimesCircle
 } from 'react-icons/fa';
-
-const API_BASE_URL = 'http://localhost:8000/api';
+import { API_BASE_URL } from '../../../config/api.js';
 
 const DocumentListPage = () => {
   const navigate = useNavigate();

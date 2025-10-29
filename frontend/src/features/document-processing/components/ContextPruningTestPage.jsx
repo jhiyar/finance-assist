@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { API_BASE_URL } from '../../../config/api.js';
 import { useForm } from 'react-hook-form';
 import { 
   Scissors, 
@@ -54,7 +55,7 @@ const ContextPruningTestPage = () => {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await fetch('/api/document-processing/parse-document/', {
+      const response = await fetch(`${API_BASE_URL}/document-processing/parse-document/`, {
         method: 'POST',
         body: formData
       });
@@ -175,7 +176,7 @@ const ContextPruningTestPage = () => {
             config.use_llm_compression = false; // Disable for faster testing
           }
 
-          const response = await fetch('/api/document-processing/context-pruning/', {
+          const response = await fetch(`${API_BASE_URL}/document-processing/context-pruning/`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

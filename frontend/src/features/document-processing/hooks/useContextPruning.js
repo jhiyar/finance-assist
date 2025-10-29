@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { API_BASE_URL } from '../../../config/api.js';
 
 export const useContextPruning = () => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -22,7 +23,7 @@ export const useContextPruning = () => {
         metadata: doc.metadata || {}
       }));
 
-      const response = await fetch('/api/document-processing/context-pruning/', {
+      const response = await fetch(`${API_BASE_URL}/document-processing/context-pruning/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

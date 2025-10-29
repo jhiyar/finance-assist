@@ -1,14 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:8000/api/document-processing';
+import { API_BASE_URL } from '../../../config/api.js';
 
 export const useChunkingMethods = () => {
   return useQuery({
     queryKey: ['chunking-methods'],
     queryFn: async () => {
-      console.log('Fetching chunking methods from:', `${API_BASE_URL}/chunking-methods/`);
-      const response = await axios.get(`${API_BASE_URL}/chunking-methods/`);
+      console.log('Fetching chunking methods from:', `${API_BASE_URL}/document-processing/chunking-methods/`);
+      const response = await axios.get(`${API_BASE_URL}/document-processing/chunking-methods/`);
       console.log('Chunking methods response:', response.data);
       return response.data;
     },
@@ -23,7 +22,7 @@ export const useChunkingMethodConfig = (methodId) => {
     queryKey: ['chunking-method-config', methodId],
     queryFn: async () => {
       const response = await axios.get(
-        `${API_BASE_URL}/chunking-methods/${methodId}/config/`
+        `${API_BASE_URL}/document-processing/chunking-methods/${methodId}/config/`
       );
       return response.data;
     },

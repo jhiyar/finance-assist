@@ -3,6 +3,7 @@ import MessageBubble from './MessageBubble'
 import RAGDetailsModal from './RAGDetailsModal'
 import Modal from '../../core/components/Modal'
 import ProfileForm from '../../profile/components/ProfileForm'
+import { API_BASE_URL } from '../../../config/api.js'
 
 function ChatInterface() {
   const [messages, setMessages] = useState([
@@ -21,7 +22,7 @@ function ChatInterface() {
 
   useEffect(() => {
     if (widget?.widget === 'profile_update' && !profile) {
-      fetch('/api/profile').then(r => r.json()).then(setProfile).catch(() => {})
+      fetch(`${API_BASE_URL}/profile`).then(r => r.json()).then(setProfile).catch(() => {})
     }
   }, [widget, profile])
 
@@ -36,7 +37,7 @@ function ChatInterface() {
     setMessages(prev => [...prev, userMsg])
     setInput('')
     try {
-      const res = await fetch('/api/chat', { 
+      const res = await fetch(`${API_BASE_URL}/chat`, { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ 

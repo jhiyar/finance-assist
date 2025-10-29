@@ -69,7 +69,7 @@ const ChunkingMethodSelector = ({ selectedMethods, onMethodsChange, onConfigurat
           Failed to load chunking methods from the server. Please check:
         </p>
         <ul className="list-disc list-inside text-red-700 space-y-1">
-          <li>Backend server is running on http://localhost:8000</li>
+          <li>Backend server is running</li>
           <li>Database migrations have been run</li>
           <li>Chunking methods have been populated</li>
         </ul>

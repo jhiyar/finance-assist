@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { API_BASE_URL } from '../../../config/api.js';
 import { useForm } from 'react-hook-form';
 import { 
   Scissors, 
@@ -68,7 +69,7 @@ const ContextPruningPanel = ({ documents = [], onPruningComplete }) => {
         config.use_llm_compression = data.enable_llm_compression;
       }
 
-      const response = await fetch('/api/document-processing/context-pruning/', {
+      const response = await fetch(`${API_BASE_URL}/document-processing/context-pruning/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

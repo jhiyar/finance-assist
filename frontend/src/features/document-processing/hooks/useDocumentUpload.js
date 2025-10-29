@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:8000/api/document-processing';
+import { API_BASE_URL } from '../../../config/api.js';
 
 export const useDocumentUpload = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -11,7 +10,7 @@ export const useDocumentUpload = () => {
   const uploadMutation = useMutation({
     mutationFn: async (formData) => {
       const response = await axios.post(
-        `${API_BASE_URL}/documents/upload/`,
+        `${API_BASE_URL}/document-processing/documents/upload/`,
         formData,
         {
           headers: {

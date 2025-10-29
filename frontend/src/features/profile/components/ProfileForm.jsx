@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { API_BASE_URL } from '../../../config/api.js'
 
 function ProfileForm({ initialProfile, onSaved }) {
   const [form, setForm] = useState(() => ({ name: '', address: '', email: '', ...initialProfile }))
@@ -13,7 +14,7 @@ function ProfileForm({ initialProfile, onSaved }) {
     e.preventDefault()
     setSaving(true)
     try {
-      const res = await fetch('http://localhost:8000/api/profile', { 
+      const res = await fetch(`${API_BASE_URL}/profile`, { 
         method: 'PATCH', 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify(form) 

@@ -3,8 +3,7 @@
  */
 
 import { Conversation, Message, ChatResponse } from './conversation.js';
-
-const API_BASE_URL = '/api';
+import { API_BASE_URL } from '../../../config/api.js';
 
 /**
  * Conversation API service

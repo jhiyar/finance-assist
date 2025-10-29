@@ -1,13 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:8000/api/document-processing';
+import { API_BASE_URL } from '../../../config/api.js';
 
 export const useDocuments = () => {
   return useQuery({
     queryKey: ['documents'],
     queryFn: async () => {
-      const response = await axios.get(`${API_BASE_URL}/documents/`);
+      const response = await axios.get(`${API_BASE_URL}/document-processing/documents/`);
       return response.data;
     },
   });
@@ -18,7 +17,7 @@ export const useDocument = (documentId) => {
     queryKey: ['document', documentId],
     queryFn: async () => {
       const response = await axios.get(
-        `${API_BASE_URL}/documents/${documentId}/`
+        `${API_BASE_URL}/document-processing/documents/${documentId}/`
       );
       return response.data;
     },
@@ -31,7 +30,7 @@ export const useDeleteDocument = () => {
 
   return useMutation({
     mutationFn: async (documentId) => {
-      await axios.delete(`${API_BASE_URL}/documents/${documentId}/`);
+      await axios.delete(`${API_BASE_URL}/document-processing/documents/${documentId}/`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
