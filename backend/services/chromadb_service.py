@@ -16,12 +16,20 @@ import chromadb
 from chromadb.config import Settings
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+# Configuration: Set to False to disable Hugging Face transformers
+# This prevents SSL certificate issues and avoids downloading models from HuggingFace
+USE_HUGGINGFACE_TRANSFORMERS = os.getenv('USE_HUGGINGFACE_TRANSFORMERS', 'true').lower() == 'true'
+
 # Optional sentence_transformers - will fallback to OpenAI if not available
-try:
-    from sentence_transformers import SentenceTransformer
-    SENTENCE_TRANSFORMERS_AVAILABLE = True
-except ImportError:
-    SENTENCE_TRANSFORMERS_AVAILABLE = False
+SENTENCE_TRANSFORMERS_AVAILABLE = False
+if USE_HUGGINGFACE_TRANSFORMERS:
+    try:
+        from sentence_transformers import SentenceTransformer
+        SENTENCE_TRANSFORMERS_AVAILABLE = True
+    except ImportError:
+        SENTENCE_TRANSFORMERS_AVAILABLE = False
+
 from rank_bm25 import BM25Okapi
 import numpy as np
 from collections import defaultdict
@@ -61,13 +69,32 @@ class ChromaDBService:
         )
         
         # Initialize embedding model
-        try:
-            self.embedding_model = SentenceTransformer(embedding_model)
-            logger.info(f"Initialized embedding model: {embedding_model}")
-        except Exception as e:
-            logger.warning(f"Failed to initialize SentenceTransformer, falling back to OpenAI: {e}")
-            self.embedding_model = None
-            self.openai_service = get_openai_service()
+        self.embedding_model = None
+        self.openai_service = None
+        
+        if USE_HUGGINGFACE_TRANSFORMERS and SENTENCE_TRANSFORMERS_AVAILABLE:
+            try:
+                self.embedding_model = SentenceTransformer(embedding_model)
+                logger.info(f"Initialized embedding model: {embedding_model}")
+            except Exception as e:
+                logger.warning(f"Failed to initialize SentenceTransformer: {e}")
+                self.embedding_model = None
+        else:
+            logger.info("Hugging Face transformers disabled. Will use OpenAI embeddings if API key is available.")
+        
+        # Initialize OpenAI service as fallback or primary embedding source
+        if not self.embedding_model:
+            try:
+                self.openai_service = get_openai_service()
+                # Check if API key is available
+                if not self.openai_service.api_key:
+                    logger.warning("OPENAI_API_KEY not set. Set USE_HUGGINGFACE_TRANSFORMERS=true to use local embeddings or set OPENAI_API_KEY.")
+                    self.openai_service = None
+                else:
+                    logger.info("Using OpenAI embeddings as embedding source")
+            except Exception as e2:
+                logger.warning(f"Failed to initialize OpenAI service: {e2}")
+                self.openai_service = None
         
         # Initialize text splitter
         self.text_splitter = RecursiveCharacterTextSplitter(
@@ -223,10 +250,19 @@ class ChromaDBService:
         """Generate embedding for text."""
         if self.embedding_model:
             return self.embedding_model.encode([text])[0].tolist()
-        else:
+        elif self.openai_service and self.openai_service.api_key:
             # Use OpenAI embeddings as fallback
-            embeddings = self.openai_service.get_langchain_embeddings()
-            return embeddings.embed_query(text)
+            try:
+                embeddings = self.openai_service.get_langchain_embeddings()
+                return embeddings.embed_query(text)
+            except Exception as e:
+                logger.error(f"OpenAI embedding generation failed: {e}")
+                raise ValueError(f"OpenAI embedding generation failed: {e}")
+        else:
+            raise ValueError(
+                "No embedding model available. Either install sentence-transformers "
+                "(pip install sentence-transformers) or set OPENAI_API_KEY environment variable."
+            )
     
     def _rebuild_bm25_index(self):
         """Rebuild BM25 index from all documents in ChromaDB."""

@@ -1,3 +1,4 @@
+import os
 import time
 import logging
 import numpy as np
@@ -23,6 +24,13 @@ class SemanticChunker(BaseChunker):
     
     def _initialize_embedding_model(self):
         """Initialize the embedding model for semantic similarity."""
+        # Check if Hugging Face transformers are enabled
+        use_hf_transformers = os.getenv('USE_HUGGINGFACE_TRANSFORMERS', 'true').lower() == 'true'
+        
+        if not use_hf_transformers:
+            logger.info("Hugging Face transformers disabled. Using OpenAI embeddings instead.")
+            return None
+            
         try:
             from sentence_transformers import SentenceTransformer
             model_name = self.config.get('embedding_model', 'all-MiniLM-L6-v2')

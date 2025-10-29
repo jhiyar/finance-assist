@@ -76,7 +76,7 @@ class ChatView(APIView):
             self.agentic_rag_service = initialize_agentic_rag_service(
                 documents_directory="sample_documents",
                 model_name="gpt-4o-mini",
-                enable_evaluation=False,
+                enable_reflection=False,
                 force_reprocess=False
             )
             print("✓ Enhanced Agentic-RAG service initialized", flush=True)
@@ -473,7 +473,7 @@ class ConversationChatView(APIView):
             self.agentic_rag_service = initialize_agentic_rag_service(
                 documents_directory="sample_documents",
                 model_name="gpt-4o-mini",
-                enable_evaluation=False,
+                enable_reflection=False,
                 force_reprocess=False
             )
             print("✓ Enhanced Agentic-RAG service initialized", flush=True)

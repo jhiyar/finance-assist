@@ -41,6 +41,14 @@ services:
       - DEBUG=${DEBUG:-True}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
       - DATABASE_URL=mysql://finance_user:finance_password@db:3306/finance_assist
+      - USE_HUGGINGFACE_TRANSFORMERS=true
+     
+      # MySQL database configuration for local development
+      - DB_HOST=db
+      - DB_NAME=finance_assist
+      - DB_USER=finance_user
+      - DB_PASSWORD=finance_password
+      - DB_PORT=3306
     depends_on:
       - db
 

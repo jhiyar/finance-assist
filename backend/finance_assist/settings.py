@@ -6,9 +6,7 @@ from pathlib import Path
 import os
 from decouple import config
 
-# Configure PyMySQL to use as MySQLdb
-import pymysql
-pymysql.install_as_MySQLdb()
+# Using default MySQL client (mysqlclient)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -76,26 +74,39 @@ WSGI_APPLICATION = 'finance_assist.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-# Database configuration - use SQLite for AWS App Runner if no database is available
+# Database configuration - use different databases for local vs production
 import os
 
 if os.getenv('DB_HOST'):
-    # Use MySQL if DB_HOST is set
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': os.getenv('DB_NAME', 'finance_assist'),
-            'USER': os.getenv('DB_USER', 'finance_user'),
-            'PASSWORD': os.getenv('DB_PASSWORD', 'finance_password'),
-            'HOST': os.getenv('DB_HOST', 'db'),
-            'PORT': os.getenv('DB_PORT', '3306'),
-            'OPTIONS': {
-                'charset': 'utf8mb4',
-            },
+    # Check if PostgreSQL is configured (production)
+    if os.getenv('DB_ENGINE') == 'postgresql':
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': os.getenv('DB_NAME', 'finance_assist'),
+                'USER': os.getenv('DB_USER', 'postgres'),
+                'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
+                'HOST': os.getenv('DB_HOST', 'localhost'),
+                'PORT': os.getenv('DB_PORT', '5432'),
+            }
         }
-    }
+    else:
+        # Use MySQL for local development
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.mysql',
+                'NAME': os.getenv('DB_NAME', 'finance_assist'),
+                'USER': os.getenv('DB_USER', 'finance_user'),
+                'PASSWORD': os.getenv('DB_PASSWORD', 'finance_password'),
+                'HOST': os.getenv('DB_HOST', 'db'),
+                'PORT': os.getenv('DB_PORT', '3306'),
+                'OPTIONS': {
+                    'charset': 'utf8mb4',
+                },
+            }
+        }
 else:
-    # Use SQLite for AWS App Runner deployment
+    # Use SQLite for AWS App Runner deployment if no database is configured
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -165,11 +176,12 @@ APPEND_SLASH = False
 # Watson AI configuration removed - using OpenAI only
 
 # OpenAI API Configuration
-OPENAI_API_KEY = config('OPENAI_API_KEY', default='')
-OPENAI_MODEL_NAME = config('OPENAI_MODEL_NAME', default='gpt-3.5-turbo')
-OPENAI_EMBEDDING_MODEL = config('OPENAI_EMBEDDING_MODEL', default='text-embedding-3-small')
-OPENAI_TEMPERATURE = config('OPENAI_TEMPERATURE', default='0.1')
-OPENAI_MAX_TOKENS = config('OPENAI_MAX_TOKENS', default='4096')
+# Read from environment variable first, then fall back to config/decouple
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY') or config('OPENAI_API_KEY', default='')
+OPENAI_MODEL_NAME = os.getenv('OPENAI_MODEL_NAME') or config('OPENAI_MODEL_NAME', default='gpt-3.5-turbo')
+OPENAI_EMBEDDING_MODEL = os.getenv('OPENAI_EMBEDDING_MODEL') or config('OPENAI_EMBEDDING_MODEL', default='text-embedding-3-small')
+OPENAI_TEMPERATURE = os.getenv('OPENAI_TEMPERATURE') or config('OPENAI_TEMPERATURE', default='0.1')
+OPENAI_MAX_TOKENS = os.getenv('OPENAI_MAX_TOKENS') or config('OPENAI_MAX_TOKENS', default='4096')
 
 # AI Service Configuration
 AI_SERVICE_PROVIDER = 'openai'  # Using OpenAI only

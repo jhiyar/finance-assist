@@ -15,12 +15,17 @@ import pandas as pd
 
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+# Configuration: Set to False to disable Hugging Face transformers
+USE_HUGGINGFACE_TRANSFORMERS = os.getenv('USE_HUGGINGFACE_TRANSFORMERS', 'true').lower() == 'true'
+
 # Optional sentence_transformers - will fallback to OpenAI if not available
-try:
-    from sentence_transformers import SentenceTransformer
-    SENTENCE_TRANSFORMERS_AVAILABLE = True
-except ImportError:
-    SENTENCE_TRANSFORMERS_AVAILABLE = False
+SENTENCE_TRANSFORMERS_AVAILABLE = False
+if USE_HUGGINGFACE_TRANSFORMERS:
+    try:
+        from sentence_transformers import SentenceTransformer
+        SENTENCE_TRANSFORMERS_AVAILABLE = True
+    except ImportError:
+        SENTENCE_TRANSFORMERS_AVAILABLE = False
 
 from services.openai_service import get_openai_service
 from services.chromadb_service import get_chromadb_service

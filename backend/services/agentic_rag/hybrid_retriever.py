@@ -5,6 +5,7 @@ This module implements hybrid retrieval combining vector search and BM25
 for improved document retrieval performance.
 """
 
+import os
 import logging
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
@@ -12,12 +13,17 @@ import numpy as np
 from collections import defaultdict
 
 from langchain_core.documents import Document
+# Configuration: Set to False to disable Hugging Face transformers
+USE_HUGGINGFACE_TRANSFORMERS = os.getenv('USE_HUGGINGFACE_TRANSFORMERS', 'true').lower() == 'true'
+
 # Optional sentence_transformers - will fallback to OpenAI if not available
-try:
-    from sentence_transformers import SentenceTransformer
-    SENTENCE_TRANSFORMERS_AVAILABLE = True
-except ImportError:
-    SENTENCE_TRANSFORMERS_AVAILABLE = False
+SENTENCE_TRANSFORMERS_AVAILABLE = False
+if USE_HUGGINGFACE_TRANSFORMERS:
+    try:
+        from sentence_transformers import SentenceTransformer
+        SENTENCE_TRANSFORMERS_AVAILABLE = True
+    except ImportError:
+        SENTENCE_TRANSFORMERS_AVAILABLE = False
 from rank_bm25 import BM25Okapi
 
 from services.openai_service import get_openai_service
@@ -61,7 +67,16 @@ class HybridRetriever:
         self.top_k = top_k
         
         # Initialize embedding model
-        self.embedding_model_instance = SentenceTransformer(embedding_model)
+        if SENTENCE_TRANSFORMERS_AVAILABLE:
+            try:
+                self.embedding_model_instance = SentenceTransformer(embedding_model)
+                logger.info(f"Using sentence_transformers model: {embedding_model}")
+            except Exception as e:
+                logger.warning(f"Failed to load sentence_transformers model {embedding_model}: {e}")
+                self.embedding_model_instance = None
+        else:
+            logger.info("sentence_transformers not available, using OpenAI embeddings")
+            self.embedding_model_instance = None
         
         # Initialize BM25
         self.bm25_index = None
